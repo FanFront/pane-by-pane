@@ -7,9 +7,14 @@ wheels/
 *.egg-info
 
 # Virtual environments
-.venv
+.venv/
 
 # Node / TypeScript
 node_modules/
 dist/
 *.tsbuildinfo
+
+# Android: generated locally/CI by Capacitor
+android/
+*.apk
+*.aab
