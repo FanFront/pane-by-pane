@@ -1,22 +1,23 @@
 /**
- * UI language. Korean and English, following the terms the original game
- * uses in each language (window, cell, region, border, area; rule names).
- * Picked from localStorage, then the URL (`#…&lang=`), then the browser.
+ * UI language: Korean, English and Simplified Chinese.
+ * Picked from localStorage, then a shared-link language, then the browser.
  */
-export type Lang = 'ko' | 'en';
+import { zh } from './zh.ts';
+
+export type Lang = 'ko' | 'en' | 'zh';
 
 function detect(): Lang {
   // the analysis module is also used from tests under Node, where there is no browser
   if (typeof window === 'undefined') return 'en';
   try {
     const saved = localStorage.getItem('pbp:lang');
-    if (saved === 'ko' || saved === 'en') return saved;
+    if (saved === 'ko' || saved === 'en' || saved === 'zh') return saved;
   } catch {
     /* ignore */
   }
   // a language given in a shared link sticks (the app rewrites the hash without it)
   const q = new URLSearchParams(location.hash.slice(1)).get('lang');
-  if (q === 'ko' || q === 'en') {
+  if (q === 'ko' || q === 'en' || q === 'zh') {
     try {
       localStorage.setItem('pbp:lang', q);
     } catch {
@@ -24,7 +25,8 @@ function detect(): Lang {
     }
     return q;
   }
-  return (navigator.language || '').toLowerCase().startsWith('ko') ? 'ko' : 'en';
+  const preferred = (navigator.language || '').toLowerCase();
+  return preferred.startsWith('zh') ? 'zh' : preferred.startsWith('ko') ? 'ko' : 'en';
 }
 
 export const lang: Lang = detect();
@@ -275,7 +277,9 @@ const ko = {
   },
 };
 
-const en: typeof ko = {
+export type Messages = typeof ko;
+
+const en: Messages = {
   title: 'pane by pane',
   goal: 'Goal',
   undo: 'Undo',
@@ -283,8 +287,8 @@ const en: typeof ko = {
   clear: 'Clear all',
   undoTitle: 'Undo (⌘Z)',
   redoTitle: 'Redo (⇧⌘Z)',
-  langSwitch: '한국어',
-  langSwitchTitle: '한국어로 보기',
+  langSwitch: '中文',
+  langSwitchTitle: 'Switch to Simplified Chinese',
   goalDesc: 'Following the rules, fill every cell of the window with coloured glass, or draw every border between regions.',
   close: 'Close',
   revealTitle: 'Show solution',
@@ -493,7 +497,7 @@ const en: typeof ko = {
   },
 };
 
-export const M = lang === 'ko' ? ko : en;
+export const M: Messages = lang === 'ko' ? ko : lang === 'zh' ? zh : en;
 
 /**
  * Fill static page text: `data-i18n="key"` sets textContent, `data-i18n-title`
@@ -510,5 +514,5 @@ export function applyStatic(root: ParentNode = document): void {
   for (const el of root.querySelectorAll<HTMLElement>('[data-i18n-title]')) el.title = lookup(el.dataset.i18nTitle!);
   for (const el of root.querySelectorAll<HTMLElement>('[data-i18n-aria]')) el.setAttribute('aria-label', lookup(el.dataset.i18nAria!));
   for (const el of root.querySelectorAll<HTMLInputElement>('[data-i18n-placeholder]')) el.placeholder = lookup(el.dataset.i18nPlaceholder!);
-  document.documentElement.lang = lang;
+  document.documentElement.lang = lang === 'zh' ? 'zh-CN' : lang;
 }

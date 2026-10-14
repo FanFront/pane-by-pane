@@ -36,7 +36,8 @@ function warn(text: string, title = M.warnTitle): void {
   warnDialog.showModal();
 }
 $('warn-close').addEventListener('click', () => warnDialog.close());
-$('lang').addEventListener('click', () => setLang(lang === 'ko' ? 'en' : 'ko'));
+// Cycle through Korean → English → Simplified Chinese; chosen language persists.
+$('lang').addEventListener('click', () => setLang(lang === 'ko' ? 'en' : lang === 'en' ? 'zh' : 'ko'));
 
 interface Current {
   puzzle: Puzzle;

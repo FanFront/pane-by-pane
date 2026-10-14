@@ -16,7 +16,7 @@ A stained-glass region-partition puzzle in the spirit of *The Artisan of Glimmit
 - **A window that lights up.** Regions are panes of glass, borders are lead came. Finish the window and the glass deepens, the room darkens, and light plays across the panes.
 - **The goal stays in view.** A strip of chips above the window sums up every rule of the puzzle ("area 3–6", the shape bank, "= same shape"); tap one for the full description. A one-time note on first visit points it out.
 - **It ticks.** Every pane painted or erased plays a haptic tick, on Android through the Vibration API and on iOS through the one thing that still works there: a real, invisible `<input type=checkbox switch>` under the finger, moved around during a stroke so that WebKit's own drag-tracking haptic fires once per pane (see `src/web/haptics.ts`).
-- **Playable anywhere.** Touch and mouse gestures, undo/redo, autosave, shareable links, Korean or English chosen from the browser and switchable in the header.
+- **Playable anywhere.** Touch and mouse gestures, undo/redo, autosave, shareable links, Korean, English or Simplified Chinese chosen from the browser and switchable in the header. The choice is saved locally.
 
 ## Try it
 

@@ -9,6 +9,11 @@ on:
       - capacitor.config.json
       - scripts/build-android.sh
       - ANDROID.md
+      - src/web/**
+      - index.html
+      - package.json
+      - package-lock.json
+      - vite.config.ts
 
 permissions:
   contents: read
