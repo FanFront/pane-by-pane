@@ -745,4 +745,5 @@ if (fromHash && last && last.hash === location.hash) {
   writeOptions(intro);
   startGenerate(intro);
 }
-updateButtons();\n
+updateButtons();
+void initPresets();
