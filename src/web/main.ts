@@ -34,6 +34,17 @@ const coach = $('coach');
 const revealDialog = $<HTMLDialogElement>('reveal-dialog');
 const revealBtn = $<HTMLButtonElement>('reveal');
 const warnDialog = $<HTMLDialogElement>('warn-dialog');
+const settingsDialog = $<HTMLDialogElement>('settings-dialog');
+
+// The board keeps only playing controls. All infrequent actions live in Settings.
+$('settings-entry').addEventListener('click', () => {
+  dismissCoach();
+  if (!settingsDialog.open) settingsDialog.showModal();
+});
+$('settings-close').addEventListener('click', () => settingsDialog.close());
+settingsDialog.addEventListener('click', (event) => {
+  if (event.target === settingsDialog) settingsDialog.close();
+});
 
 /** A warning the user has to see: shown as a modal, not a status line. */
 function warn(text: string, title = M.warnTitle): void {
@@ -243,6 +254,13 @@ function refreshPresetUi(): void {
     '구역과 챕터별로 퍼즐을 고르세요. 완료 기록은 이 기기에 저장됩니다.',
   );
   $('levels-entry-label').textContent = presetText('关卡', 'Levels', '레벨');
+  $('settings-title').textContent = presetText('设置', 'Settings', '설정');
+  $('settings-entry-label').textContent = presetText('设置', 'Settings', '설정');
+  $('settings-entry').setAttribute('aria-label', $('settings-title').textContent || 'Settings');
+  $('settings-entry').title = $('settings-title').textContent || 'Settings';
+  $('settings-gameplay-heading').textContent = presetText('游玩选项', 'Play options', '게임 설정');
+  $('settings-error-label').textContent = presetText('错误提示', 'Show errors', '오류 표시');
+  $('settings-close').setAttribute('aria-label', presetText('关闭设置', 'Close settings', '설정 닫기'));
   $('levels-title').textContent = presetText('关卡选择', 'Select a level', '레벨 선택');
   $('levels-back').textContent = presetText('← 章节', '← Chapters', '← 챕터');
   $('levels-legend').textContent = presetText('✓ 已完成 · ○ 未完成 · ◆ 当前关卡', '✓ Completed · ○ Not completed · ◆ Current', '✓ 완료 · ○ 미완료 · ◆ 현재');
@@ -393,12 +411,15 @@ function openLevelBrowser(): void {
     selectedChapter = `${location.zone}/${location.chapter}`;
   }
   renderLevelBrowser();
+  // Do not leave Settings underneath the level picker on Android.
+  if (settingsDialog.open) settingsDialog.close();
   if (!levelsDialog.open) levelsDialog.showModal();
 }
 
 function playPreset(index: number): void {
   const entry = presetEntries[index];
   if (!entry) return;
+  if (settingsDialog.open) settingsDialog.close();
   if (worker) {
     worker.terminate();
     worker = null;
@@ -673,7 +694,9 @@ function refreshStatus(): void {
   if (!current) return;
   const c = checkCompletion(current.engine, current.ps);
   board.setComplete(c.done && !board.reveal);
+  const wasDone = !doneEl.hidden;
   doneEl.hidden = !c.done;
+  if (wasDone !== c.done) board.layout();
   if (c.done && current.presetKey && !board.reveal) {
     if (completeLevel(progress, current.presetKey)) {
       saveLevelProgress(localStorage, progress);
@@ -707,7 +730,7 @@ function onChange(): void {
 }
 
 function updateButtons(): void {
-  for (const id of ['undo', 'redo', 'clear', 'undo-mobile', 'redo-mobile']) $<HTMLButtonElement>(id).disabled = !current;
+  for (const id of ['undo', 'redo', 'clear', 'undo-mobile', 'redo-mobile', 'reveal']) $<HTMLButtonElement>(id).disabled = !current;
   if (!current) return;
   $<HTMLButtonElement>('undo').disabled = !current.ps.canUndo;
   $<HTMLButtonElement>('redo').disabled = !current.ps.canRedo;
@@ -744,6 +767,7 @@ function generateFromForm(): void {
     warn({ 'gemini-sizeSeparation': M.warnGeminiSizeSep, 'rose-solitude': M.warnRoseSolitude, 'boxy-nonBoxy': M.warnBoxyNonBoxy, 'solitude-needs-symbols': M.warnSolitudeNeedsSymbols, 'boxy-needs-size': M.warnBoxyNeedsSize, 'gemini-mingle': M.warnGeminiMingle, 'match-mismatch': M.warnMatchMismatch, 'match-shapes': M.warnMatchShapes, 'mismatch-gemini': M.warnMismatchGemini, 'loopy-needs-size': M.warnLoopyNeedsSize }[conflict]);
     return;
   }
+  if (settingsDialog.open) settingsDialog.close();
   startGenerate(o, true);
 }
 
@@ -796,6 +820,7 @@ $('clear').addEventListener('click', () => {
   if (!current) return;
   current.ps.clear();
   onChange();
+  settingsDialog.close();
 });
 $('eraser').addEventListener('click', () => {
   board.eraser = !board.eraser;
@@ -881,6 +906,7 @@ function hideSolution(): void {
 
 revealBtn.addEventListener('click', () => {
   if (!current) return;
+  if (settingsDialog.open) settingsDialog.close();
   if (board.reveal) {
     hideSolution();
     onChange();
@@ -916,7 +942,11 @@ document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: fals
 /** Return true when an in-app back action was consumed. */
 function navigateBack(): boolean {
   const dialogs = [...document.querySelectorAll<HTMLDialogElement>('dialog[open]')];
-  const opened = dialogs.at(-1) ?? null;
+  // A warning can appear over Settings. The focused modal is the topmost one
+  // even when its element occurs earlier in the document than Settings.
+  const active = document.activeElement;
+  const focusedDialog = dialogs.find((dialog) => active !== null && dialog.contains(active));
+  const opened = focusedDialog ?? dialogs.at(-1) ?? null;
   const action = chooseBackAction(opened?.id ?? null, selectedChapter !== null, !coach.hidden);
   if (action === 'chapter') {
     selectedChapter = null;

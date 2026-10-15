@@ -188,21 +188,20 @@ button.primary {
 /* -- layout ------------------------------------------------------------------ */
 
 #app {
-  display: flex;
   min-height: calc(100vh - var(--top));
 }
 
 #board-wrap {
-  flex: 1;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px 24px 24px;
-  /* the stone wall the window is set in: holes show this, glass to fill is pale */
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+  /* The board stays centered and the play controls occupy a reserved bottom row. */
   background: radial-gradient(ellipse at 50% 40%, #55545d 0%, var(--stage) 45%, #33323a 100%);
-  position: sticky;
-  top: var(--top);
+  position: relative;
   height: calc(100vh - var(--top));
+  height: calc(100dvh - var(--top));
   overflow: hidden;
 }
 
@@ -423,14 +422,54 @@ canvas#board.lit {
   }
 }
 
-#panel {
-  width: 280px;
-  padding: 18px 18px 24px;
-  border-left: 1px solid var(--line);
-  background: var(--paper);
+/* Level management, generation and preferences are inside #settings-dialog. */
+#settings-dialog {
+  width: min(94vw, 500px);
+  max-height: 88vh;
+  max-height: 88dvh;
+  padding: 0;
+  overflow: hidden;
+}
+#settings-dialog .settings-head {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.settings-content {
+  max-height: calc(88vh - 60px);
+  max-height: calc(88dvh - 60px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 18px calc(22px + env(safe-area-inset-bottom, 0px));
+}
+.settings-group {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
+}
+.settings-group h2 {
+  margin: 0;
+  font-weight: 600;
+}
+.settings-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.settings-actions button {
+  min-width: 0;
+  min-height: 56px;
+}
+.settings-actions button.icon {
+  border: 1px solid var(--line);
+  background: white;
+  min-width: 0;
+  justify-content: center;
+}
+.settings-actions #reveal {
+  font-size: 12px;
+}
+#settings-dialog #credit {
+  margin-top: 14px;
 }
 
 #credit {
@@ -568,13 +607,19 @@ button:disabled {
 
 .toolbar {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
 }
-
-/* Only the bottom-mounted Android/narrow-screen toolbar uses these buttons. */
 .mobile-tool {
-  display: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.mobile-tool-symbol {
+  font-size: 22px;
+  line-height: 1;
 }
 
 #info[hidden] {
@@ -582,9 +627,34 @@ button:disabled {
 }
 
 #info {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  width: min(620px, 100%);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+}
+#info .toolbar button {
+  min-width: 0;
+  min-height: 50px;
+  padding: 6px 4px;
+  border: 1px solid rgba(226, 218, 205, 0.85);
+  background: var(--paper);
+  color: var(--fg);
+  font-size: 12px;
+  line-height: 1.2;
+  box-shadow: 0 3px 9px rgba(0, 0, 0, 0.18);
+  touch-action: manipulation;
+}
+#info .toolbar button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+#top #undo,
+#top #redo {
+  display: none;
 }
 
 button.active {
@@ -627,16 +697,23 @@ select {
 }
 
 .status-row {
+  min-height: 24px;
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
-  gap: 8px 12px;
+  gap: 6px 12px;
 }
-
 #status {
   min-height: 1.4em;
+  color: #fff5e7;
   font-weight: 600;
+  text-align: center;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, .65);
 }
+#info #status.ok { color: #ffe2a3; }
+#done button { min-height: 36px; }
+
 
 #done {
   display: flex;
@@ -693,99 +770,33 @@ a {
   color: var(--accent);
 }
 
+/* -- responsive play surface ---------------------------------------------- */
 @media (max-width: 700px) {
-  #app {
-    flex-direction: column;
-  }
-  #panel {
-    width: auto;
-    border-left: 0;
-    border-top: 1px solid var(--line);
-  }
+  #top { gap: 8px; }
+  #stars { display: none; }
+  h1 { font-size: 18px; gap: 7px; }
+  h1 svg { width: 22px; height: 22px; }
   #board-wrap {
-    padding: 10px 12px 12px;
-    position: relative;
-    top: auto;
-    height: auto;
-    min-height: 60vh;
+    padding: 9px 10px calc(9px + env(safe-area-inset-bottom, 0px));
   }
-  .chip.stars {
-    display: inline-flex;
+  .goal-area { width: 100%; margin-bottom: 5px; }
+  #goal-bar {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 3px 2px 5px;
   }
-  #stars {
-    display: none;
-  }
-  #top {
-    gap: 8px;
-  }
-  h1 {
-    font-size: 18px;
-    gap: 7px;
-  }
-  h1 svg {
-    width: 22px;
-    height: 22px;
-  }
-  button.icon {
-    min-width: 46px;
-    padding: 4px 2px;
-    font-size: 9px;
-  }
-}
-
-/* -- fixed touch toolbar -------------------------------------------------- */
-@media (max-width: 700px) {
-  /* The header keeps Levels and language; undo/redo live in the bottom bar. */
-  #top #undo,
-  #top #redo {
-    display: none;
-  }
-
-  /* Leave room to reach the bottom of the settings panel without obstruction. */
-  #app {
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-  }
-
-  #info .toolbar {
-    position: fixed;
-    z-index: 30;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    align-items: stretch;
-    gap: 4px;
-    padding: 7px max(7px, env(safe-area-inset-right, 0px))
-      calc(7px + env(safe-area-inset-bottom, 0px))
-      max(7px, env(safe-area-inset-left, 0px));
-    border-top: 1px solid var(--line);
-    background: var(--paper);
-    box-shadow: 0 -5px 20px rgba(20, 10, 0, 0.16);
-  }
-
+  #goal-bar::-webkit-scrollbar { display: none; }
+  .chip.stars { display: inline-flex; }
+  #info .toolbar { gap: 4px; }
   #info .toolbar button {
-    min-width: 0;
     min-height: 52px;
     padding: 5px 2px;
     font-size: 11px;
-    line-height: 1.25;
     overflow-wrap: anywhere;
-    touch-action: manipulation;
   }
-
-  #info .toolbar .mobile-tool {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1px;
-  }
-
-  .mobile-tool-symbol {
-    font-size: 22px;
-    line-height: 1;
-  }
+  button.icon { min-width: 46px; padding: 4px 2px; font-size: 10px; }
 }
 
 /* -- level browser -------------------------------------------------------- */
@@ -912,5 +923,14 @@ a {
   #actions button.icon { min-width: 28px; padding: 4px 2px; }
   #actions button.icon span { display: none; }
   #actions #levels-entry { min-width: 44px; }
-  #actions #levels-entry span, #actions #lang span { display: block; }
+  #actions #levels-entry span, #actions #settings-entry span { display: block; }
+}
+
+/* Header controls and dialog stacking remain separate from board touch input. */
+#settings-entry svg { width: 22px; height: 22px; }
+@media (max-width: 380px) {
+  #top { gap: 4px; }
+  #top h1 { font-size: 13px; }
+  .settings-content { padding-left: 12px; padding-right: 12px; }
+  .settings-actions { gap: 5px; }
 }
