@@ -127,3 +127,5 @@ public/presets/private.json.report.json
 `private.json` 已列入 `.gitignore`，可以用于**本机 APK 构建**，也可以将其从电脑复制到 Android 手机上，通过「导入本地 JSON 关卡包」选择，无须重新编译。使用 GitHub Actions 构建的公开 APK 不会自动包含本地私有题库。
 
 注意：新增加的围栏和罗盘可**正确判定玩家答案**，但当前提示系统仍优先覆盖旧版规则；对含这两类线索的难题，不能保证提示算法能推出有效下一步。其它未知或不支持的字段将明确跳过，不会静默忽略。
+
+**实际兼容性验证（2026-10-15，上游 `160e3c4`）**：GitHub Actions 扫描 `puzzles/official/Zone*` 的 **1231** 个 JSON，**1229** 个完成转换并由游戏引擎校验答案，**2** 个因缺失上游配对答案文件跳过：`Zone1/1-single-shape/0067.json` 与 `Zone3/7-finalboss/1130.json`。详情见 [测试工作流](https://github.com/FanFront/pane-by-pane/actions/runs/38666589556)。这组数字反映当时的上游文件，不代表日后新提交的关卡自动通过。
