@@ -54,23 +54,26 @@ export function parsePresetPack(data: unknown, fallbackName = '个人关卡'): P
         p.width > 20 || p.height > 20 || !Array.isArray(p.clues)) {
       throw new Error(`Level ${i + 1}: invalid board dimensions or clues`);
     }
+    const width = p.width;
+    const cellCount = p.width * p.height;
     if (p.clues.length > 600 || p.clues.some((c) => !record(c) || !RULE_KINDS.includes(c.type as never))) {
       throw new Error(`Level ${i + 1}: unknown clue kind`);
     }
     if (p.holes !== undefined && (!Array.isArray(p.holes) ||
-        p.holes.some((n) => !integer(n) || n < 0 || n >= p.width * p.height))) {
+        p.holes.some((n) => !integer(n) || n < 0 || n >= cellCount))) {
       throw new Error(`Level ${i + 1}: invalid holes`);
     }
     if (p.walls !== undefined && (!Array.isArray(p.walls) ||
         p.walls.some((edge) => !record(edge) || !integer(edge.a) || !integer(edge.b) ||
-            Math.abs(edge.a - edge.b) !== p.width && Math.abs(edge.a - edge.b) !== 1))) {
+            Math.abs((edge.a % width) - (edge.b % width)) +
+              Math.abs(Math.floor(edge.a / width) - Math.floor(edge.b / width)) !== 1))) {
       throw new Error(`Level ${i + 1}: invalid walls`);
     }
     const id = requiredString(raw.id ?? `local-${i + 1}`, `level ${i + 1} ID`);
     if (ids.has(id)) throw new Error(`Duplicate puzzle ID: ${id}`);
     ids.add(id);
     const solution = raw.solution;
-    if (solution.length !== p.width * p.height || solution.some((n) => !integer(n) || n < -1 || n > 399)) {
+    if (solution.length !== cellCount || solution.some((n) => !integer(n) || n < -1 || n > 399)) {
       throw new Error(`Level ${id}: invalid solution labels`);
     }
     const puzzle = p as unknown as Puzzle;
