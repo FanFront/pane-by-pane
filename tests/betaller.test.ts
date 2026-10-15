@@ -16,7 +16,7 @@ function fixture() {
   return {
     version: '1.0',
     grid: { width: 3, height: 3 },
-    cells, edges: [], vertices: [],
+    cells, edges: [] as Record<string, unknown>[], vertices: [],
     rules: [{ type: 'fence' }, { type: 'compass' }],
     shape_pool: [],
     _meta: { archive_id: 'sample', archive_type: 'tests', archive_difficulty: 2 },
