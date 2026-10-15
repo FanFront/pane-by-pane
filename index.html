@@ -206,8 +206,13 @@
             <button type="button" id="coach-ok" data-i18n="coachOk">알겠어요</button>
           </div>
         </div>
-        <div id="stage">
-          <canvas id="board"></canvas>
+        <div id="board-viewport">
+          <div id="stage">
+            <canvas id="board"></canvas>
+          </div>
+          <button type="button" id="board-reset" hidden data-i18n-title="resetView" data-i18n-aria="resetView">
+            <span aria-hidden="true">⤢</span>
+          </button>
         </div>
         <div id="info" hidden>
           <div class="status-row">
