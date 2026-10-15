@@ -83,6 +83,8 @@ jobs:
           echo "Persistent signing key installed (certificate fingerprint is checked after APK build)."
 
       - name: Build and test web game, package Android APK
+        env:
+          PBP_ANDROID_VERSION_CODE: ${{ github.run_number }}
         run: bash scripts/build-android.sh
 
       - name: Verify APK signing certificate
@@ -96,3 +98,56 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
+
+  publish-release:
+    # A release must never be generated from a pull request's temporary debug key.
+    needs: android-debug
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified APK
+        uses: actions/download-artifact@v4
+        with:
+          name: pane-by-pane-android-debug
+          path: release
+
+      - name: Publish Android APK to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_RUN_NUMBER: ${{ github.run_number }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="android-v0.1.${RELEASE_RUN_NUMBER}"
+          apk="release/pane-by-pane-android-v0.1.${RELEASE_RUN_NUMBER}.apk"
+          mv release/app-debug.apk "$apk"
+          (cd release && sha256sum "$(basename "$apk")" > "$(basename "$apk").sha256")
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "::error::Release tag $tag already exists. To avoid replacing a signed APK, refusing to overwrite it."
+            exit 1
+          fi
+
+          cat > release-notes.md <<'NOTES'
+          ### Pane by Pane — offline Android APK
+
+          Personal-use Android sideload build. Includes the game player and bundled offline puzzle pack.
+
+          **Signing:** This APK is signed with the persistent debug certificate configured in GitHub Actions. Updates require the *same* signing certificate and application ID. APKs built before persistent signing was enabled cannot be updated in place; preserve your existing local progress before migrating.
+
+          **Install:** Download the attached APK and open it on your Android device. It is not an app-store release.
+
+          SHA-256 checksum is attached for download integrity.
+          NOTES
+
+          gh release create "$tag" "$apk" "$apk.sha256" \
+            --target "$RELEASE_COMMIT" \
+            --title "Android APK 0.1.${RELEASE_RUN_NUMBER}" \
+            --notes-file release-notes.md \
+            --prerelease
+
+          echo "Release: https://github.com/${GH_REPO}/releases/tag/${tag}"
