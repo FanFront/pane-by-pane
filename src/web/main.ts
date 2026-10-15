@@ -11,6 +11,8 @@ import { parsePresetPack, type PresetLevel, type PresetPack } from '../presets.t
 import { readPersonalPack, savePersonalPack } from './presetStore.ts';
 import { organizeLevels, flattenedLevels, levelLocation, type LevelEntry, type LevelZone } from './levelCatalog.ts';
 import { readLevelProgress, saveLevelProgress, completeLevel, chapterProgress } from './levelProgress.ts';
+import { restoredPuzzleArgs, type LastPuzzle } from './lastPuzzle.ts';
+import { chooseBackAction, installAndroidBack, type CapacitorBridge } from './androidBack.ts';
 
 applyStatic();
 
@@ -174,15 +176,6 @@ function startGenerate(opts: GenerateOptions, scrollUp = false): void {
 }
 
 // -- persistence -----------------------------------------------------------------
-
-interface LastPuzzle {
-  puzzle: Puzzle;
-  solution: number[];
-  stars: number;
-  difficulty: number;
-  hash: string;
-  presetKey?: string;
-}
 
 function saveLast(l: LastPuzzle): void {
   try {
@@ -431,6 +424,14 @@ $('levels-back').addEventListener('click', () => {
 });
 levelsDialog.addEventListener('click', (event) => {
   if (event.target === levelsDialog) levelsDialog.close();
+});
+// Escape goes up from a level grid to its chapter list before closing the dialog.
+levelsDialog.addEventListener('cancel', (event) => {
+  if (selectedChapter !== null) {
+    event.preventDefault();
+    selectedChapter = null;
+    renderLevelBrowser();
+  }
 });
 presetPrev.addEventListener('click', () => playPreset(presetEntries.findIndex((e) => e.key === current?.presetKey) - 1));
 presetNext.addEventListener('click', () => playPreset(presetEntries.findIndex((e) => e.key === current?.presetKey) + 1));
@@ -706,10 +707,12 @@ function onChange(): void {
 }
 
 function updateButtons(): void {
-  for (const id of ['undo', 'redo', 'clear']) $<HTMLButtonElement>(id).disabled = !current;
+  for (const id of ['undo', 'redo', 'clear', 'undo-mobile', 'redo-mobile']) $<HTMLButtonElement>(id).disabled = !current;
   if (!current) return;
   $<HTMLButtonElement>('undo').disabled = !current.ps.canUndo;
   $<HTMLButtonElement>('redo').disabled = !current.ps.canRedo;
+  $<HTMLButtonElement>('undo-mobile').disabled = !current.ps.canUndo;
+  $<HTMLButtonElement>('redo-mobile').disabled = !current.ps.canRedo;
   $<HTMLButtonElement>('clear').disabled = current.ps.isEmpty();
 }
 
@@ -786,6 +789,9 @@ $('undo').addEventListener('click', () => {
 $('redo').addEventListener('click', () => {
   if (current?.ps.redo()) onChange();
 });
+// A single undo/redo action path for desktop header and the fixed mobile toolbar.
+$('undo-mobile').addEventListener('click', () => $<HTMLButtonElement>('undo').click());
+$('redo-mobile').addEventListener('click', () => $<HTMLButtonElement>('redo').click());
 $('clear').addEventListener('click', () => {
   if (!current) return;
   current.ps.clear();
@@ -905,13 +911,36 @@ document.addEventListener('keydown', (e) => {
 for (const t of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(t, (e) => e.preventDefault(), { passive: false });
 document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
 
+// -- Android hardware Back / modal navigation --------------------------------------------
+
+/** Return true when an in-app back action was consumed. */
+function navigateBack(): boolean {
+  const dialogs = [...document.querySelectorAll<HTMLDialogElement>('dialog[open]')];
+  const opened = dialogs.at(-1) ?? null;
+  const action = chooseBackAction(opened?.id ?? null, selectedChapter !== null, !coach.hidden);
+  if (action === 'chapter') {
+    selectedChapter = null;
+    renderLevelBrowser();
+  } else if (action === 'dialog') {
+    opened?.close();
+  } else if (action === 'coach') {
+    dismissCoach();
+  } else {
+    return false;
+  }
+  return true;
+}
+
+// No native plugin is loaded in browsers; Capacitor injects its bridge in Android.
+installAndroidBack(navigateBack, (window as Window & { Capacitor?: CapacitorBridge }).Capacitor);
+
 // -- boot ---------------------------------------------------------------------------------
 
 const fromHash = optionsFromHash();
 const last = loadLast();
 if (fromHash && last && last.hash === location.hash) {
   writeOptions(fromHash);
-  loadPuzzle(last.puzzle, Int32Array.from(last.solution), last.stars, last.difficulty, last.presetKey);
+  loadPuzzle(...restoredPuzzleArgs(last));
   genStatus.textContent = `seed ${fromHash.seed}`;
 } else if (fromHash) {
   writeOptions(fromHash);
@@ -920,7 +949,7 @@ if (fromHash && last && last.hash === location.hash) {
   history.replaceState(null, '', last.hash);
   const o = optionsFromHash();
   if (o) writeOptions(o);
-  loadPuzzle(last.puzzle, Int32Array.from(last.solution), last.stars, last.difficulty);
+  loadPuzzle(...restoredPuzzleArgs(last));
 } else {
   // First launch opens the built-in level catalogue rather than generating a random puzzle.
   const intro: GenerateOptions = { width: 7, height: 7, rules: ['shapeBank'], minSize: 2, maxSize: 6, stars: [3, 4], seed: 125, mask: 'symmetric', walls: true, roseSymbols: 2, attempts: 300 };
