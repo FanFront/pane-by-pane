@@ -18,3 +18,7 @@ dist/
 android/
 *.apk
 *.aab
+
+# Personal Glimmith level exports: never publish game-owned puzzle data
+public/presets/private.json
+private-exports/
