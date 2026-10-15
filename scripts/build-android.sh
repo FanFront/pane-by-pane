@@ -9,6 +9,12 @@ CAPACITOR_VERSION="8.5.3"
 npm ci
 npm run typecheck
 npm test
+
+# Build the self-contained puzzle pack before Vite/Capacitor copy web assets.
+# Keep an already generated pack for local offline rebuilds.
+if [[ ! -f public/presets/betaller.json ]]; then
+  bash scripts/pull-betaller-puzzles.sh
+fi
 npm run build
 
 # Keep the upstream package.json and package-lock.json untouched, which makes
