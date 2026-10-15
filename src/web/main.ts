@@ -9,6 +9,8 @@ import type { WorkerIn, WorkerOut } from './worker.ts';
 import { M, applyStatic, lang, setLang } from './i18n.ts';
 import { parsePresetPack, type PresetLevel, type PresetPack } from '../presets.ts';
 import { readPersonalPack, savePersonalPack } from './presetStore.ts';
+import { organizeLevels, flattenedLevels, levelLocation, type LevelEntry, type LevelZone } from './levelCatalog.ts';
+import { readLevelProgress, saveLevelProgress, completeLevel, chapterProgress } from './levelProgress.ts';
 
 applyStatic();
 
@@ -50,6 +52,7 @@ interface Current {
   engine: ReturnType<typeof createEngine>;
   ps: PlayerState;
   key: string;
+  presetKey?: string;
 }
 let current: Current | null = null;
 let worker: Worker | null = null;
@@ -178,6 +181,7 @@ interface LastPuzzle {
   stars: number;
   difficulty: number;
   hash: string;
+  presetKey?: string;
 }
 
 function saveLast(l: LastPuzzle): void {
@@ -215,67 +219,188 @@ function saveMarks(): void {
 
 // -- personal and bundled preset levels -------------------------------------------
 
-interface PresetEntry {
-  key: string;
-  label: string;
-  level: PresetLevel;
-}
 let bundledPack: PresetPack | null = null;
 let betallerPack: PresetPack | null = null;
 let privatePack: PresetPack | null = null;
 let personalPack: PresetPack | null = null;
-let presetEntries: PresetEntry[] = [];
-const presetSelect = $<HTMLSelectElement>('preset-select');
+let presetEntries: LevelEntry[] = [];
+let levelZones: LevelZone[] = [];
+const progress = readLevelProgress(localStorage);
+const levelsDialog = $<HTMLDialogElement>('levels-dialog');
 const presetStatus = $('preset-status');
-const presetPlay = $<HTMLButtonElement>('preset-play');
 const presetPrev = $<HTMLButtonElement>('preset-prev');
 const presetNext = $<HTMLButtonElement>('preset-next');
 const presetFile = $<HTMLInputElement>('preset-file');
+let selectedZone = '';
+let selectedChapter: string | null = null;
 
 function presetText(zh: string, en: string, ko: string): string {
   return lang === 'zh' ? zh : lang === 'ko' ? ko : en;
 }
 
-function refreshPresetUi(preferred?: string): void {
-  const selection = preferred ?? presetSelect.value;
-  $('preset-heading').textContent = presetText('预设关卡', 'Preset puzzles', '사전 설정 퍼즐');
+function countComplete(entries: readonly LevelEntry[]): number {
+  return chapterProgress(entries.map((entry) => entry.key), progress.completed);
+}
+
+function refreshPresetUi(): void {
+  $('preset-heading').textContent = presetText('关卡模式', 'Level mode', '스테이지 모드');
   $('preset-intro').textContent = presetText(
-    '内置 Glimmith 关卡与示例，可离线游玩；也可以导入自己的 JSON 关卡包。',
-    'Play offline Glimmith puzzles and examples, or import your own JSON pack.',
-    '오프라인 글리미스 퍼즐과 예제를 플레이하거나 JSON 팩을 가져오세요.',
+    '按 Zone 和章节挑选关卡；完成情况自动保存在此设备。随机生成器在下方高级工具中。',
+    'Browse zones and chapters. Your completed levels stay saved on this device.',
+    '구역과 챕터별로 퍼즐을 고르세요. 완료 기록은 이 기기에 저장됩니다.',
   );
-  $('preset-select-label').textContent = presetText('选择关卡', 'Choose a puzzle', '퍼즐 선택');
+  $('levels-entry-label').textContent = presetText('关卡', 'Levels', '레벨');
+  $('levels-title').textContent = presetText('关卡选择', 'Select a level', '레벨 선택');
+  $('levels-back').textContent = presetText('← 章节', '← Chapters', '← 챕터');
+  $('levels-legend').textContent = presetText('✓ 已完成 · ○ 未完成 · ◆ 当前关卡', '✓ Completed · ○ Not completed · ◆ Current', '✓ 완료 · ○ 미완료 · ◆ 현재');
+  $('preset-open').textContent = presetText('选择 Zone / 章节 / 关卡', 'Browse zones / chapters / levels', '구역 / 챕터 / 레벨 선택');
   $('preset-import-label').textContent = presetText('导入本地 JSON 关卡包', 'Import a local JSON pack', '로컬 JSON 퍼즐 팩 가져오기');
-  presetPlay.textContent = presetText('开始游玩', 'Play puzzle', '퍼즐 시작');
-  presetPrev.textContent = presetText('上一关', 'Previous', '이전');
-  presetNext.textContent = presetText('下一关', 'Next', '다음');
+  $('generator-heading').textContent = presetText('高级工具：随机生成关卡', 'Advanced: Generate random puzzles', '고급: 무작위 퍼즐 만들기');
+  presetPrev.textContent = presetText('← 上一关', '← Previous', '← 이전');
+  presetNext.textContent = presetText('下一关 →', 'Next →', '다음 →');
 
   const packs: { origin: string; pack: PresetPack }[] = [];
   if (betallerPack) packs.push({ origin: 'betaller', pack: betallerPack });
   if (bundledPack) packs.push({ origin: 'bundled', pack: bundledPack });
   if (privatePack) packs.push({ origin: 'private', pack: privatePack });
   if (personalPack) packs.push({ origin: 'personal', pack: personalPack });
-  presetEntries = packs.flatMap(({ origin, pack }) =>
-    pack.levels.map((level) => ({
+  const all = packs.flatMap(({ origin, pack }) =>
+    pack.levels.map((level): LevelEntry => ({
       key: `${origin}:${level.id}`,
       label: `${pack.name} / ${level.chapter ? level.chapter + ' / ' : ''}${level.title}`,
       level,
+      packName: pack.name,
     })),
   );
-
-  presetSelect.replaceChildren();
-  for (const entry of presetEntries) {
-    const option = document.createElement('option');
-    option.value = entry.key;
-    option.textContent = entry.label;
-    presetSelect.append(option);
-  }
-  if (presetEntries.some((e) => e.key === selection)) presetSelect.value = selection;
-  const index = presetEntries.findIndex((e) => e.key === presetSelect.value);
-  presetPlay.disabled = index < 0;
+  levelZones = organizeLevels(all);
+  presetEntries = flattenedLevels(levelZones);
+  const index = presetEntries.findIndex((e) => e.key === current?.presetKey);
   presetPrev.disabled = index <= 0;
   presetNext.disabled = index < 0 || index >= presetEntries.length - 1;
-  if (index < 0) presetStatus.textContent = presetText('尚未加载关卡', 'No puzzles loaded', '불러온 퍼즐 없음');
+  $('preset-current').textContent = index < 0
+    ? presetText('尚未选择关卡', 'No level selected', '선택한 레벨 없음')
+    : `${presetEntries[index].label} · ${progress.completed.has(presetEntries[index].key)
+      ? presetText('✓ 已完成', '✓ Completed', '✓ 완료')
+      : presetText('○ 未完成', '○ Not completed', '○ 미완료')}`;
+  if (!presetEntries.length) {
+    presetStatus.textContent = presetText('正在加载关卡…', 'Loading levels…', '레벨 로딩 중…');
+  }
+  if (levelsDialog.open) renderLevelBrowser();
+}
+
+function renderLevelBrowser(): void {
+  const zoneButtons = $('level-zones');
+  const chapterList = $('level-chapters');
+  const tiles = $('level-grid');
+  const title = $('levels-subtitle');
+  const subprogress = $('levels-subprogress');
+  zoneButtons.replaceChildren();
+  chapterList.replaceChildren();
+  tiles.replaceChildren();
+
+  $('levels-total').textContent = presetText(
+    `共 ${countComplete(presetEntries)} / ${presetEntries.length} 关完成`,
+    `${countComplete(presetEntries)} / ${presetEntries.length} levels completed`,
+    `총 ${countComplete(presetEntries)} / ${presetEntries.length}개 완료`,
+  );
+  if (!levelZones.some((z) => z.key === selectedZone)) selectedZone = levelZones[0]?.key ?? '';
+  const zone = levelZones.find((z) => z.key === selectedZone);
+  if (!zone) {
+    title.textContent = presetText('暂无关卡', 'No levels available', '레벨이 없습니다');
+    $('levels-back').hidden = true;
+    chapterList.hidden = true;
+    tiles.hidden = true;
+    subprogress.textContent = '';
+    return;
+  }
+
+  for (const row of levelZones) {
+    const complete = row.chapters.reduce((n, c) => n + countComplete(c.levels), 0);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = `${row.name} (${complete}/${row.count})`;
+    btn.setAttribute('aria-pressed', String(row.key === zone.key));
+    btn.addEventListener('click', () => {
+      selectedZone = row.key;
+      selectedChapter = null;
+      renderLevelBrowser();
+    });
+    zoneButtons.append(btn);
+  }
+
+  const chapter = zone.chapters.find((c) => c.key === selectedChapter);
+  $('levels-back').hidden = !chapter;
+  chapterList.hidden = !!chapter;
+  tiles.hidden = !chapter;
+  if (!chapter) {
+    title.textContent = zone.name;
+    subprogress.textContent = presetText('选择章节', 'Choose a chapter', '챕터 선택');
+    for (const row of zone.chapters) {
+      const done = countComplete(row.levels);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'level-chapter';
+      const name = document.createElement('strong');
+      name.textContent = row.name;
+      const count = document.createElement('span');
+      count.className = 'level-count';
+      count.textContent = presetText(
+        `${done} / ${row.levels.length} 已完成`,
+        `${done} / ${row.levels.length} completed`,
+        `${done} / ${row.levels.length} 완료`,
+      );
+      const meter = document.createElement('span');
+      meter.className = 'level-meter';
+      const fill = document.createElement('span');
+      fill.style.width = `${100 * done / row.levels.length}%`;
+      meter.append(fill);
+      btn.append(name, count, meter);
+      btn.addEventListener('click', () => {
+        selectedChapter = row.key;
+        renderLevelBrowser();
+      });
+      chapterList.append(btn);
+    }
+    return;
+  }
+  title.textContent = chapter.name;
+  subprogress.textContent = `${countComplete(chapter.levels)} / ${chapter.levels.length}`;
+  for (const row of chapter.levels) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'level-tile';
+    const completed = progress.completed.has(row.key);
+    if (completed) btn.classList.add('is-complete');
+    if (row.key === current?.presetKey) btn.classList.add('is-current');
+    const name = document.createElement('strong');
+    name.textContent = '#' + row.level.id.split('/').at(-1);
+    const state = document.createElement('small');
+    state.textContent = completed
+      ? presetText('✓ 已完成', '✓ Complete', '✓ 완료')
+      : row.key === progress.recent
+        ? presetText('◆ 进行中', '◆ In progress', '◆ 진행 중')
+        : presetText('○ 未完成', '○ Not done', '○ 미완료');
+    btn.setAttribute('aria-label', `${row.label}, ${state.textContent}`);
+    btn.append(name, state);
+    btn.addEventListener('click', () => {
+      const index = presetEntries.findIndex((e) => e.key === row.key);
+      levelsDialog.close();
+      playPreset(index);
+    });
+    tiles.append(btn);
+  }
+}
+
+function openLevelBrowser(): void {
+  const key = current?.presetKey ?? progress.recent;
+  const entry = presetEntries.find((e) => e.key === key);
+  if (entry) {
+    const location = levelLocation(entry);
+    selectedZone = location.zone;
+    selectedChapter = `${location.zone}/${location.chapter}`;
+  }
+  renderLevelBrowser();
+  if (!levelsDialog.open) levelsDialog.showModal();
 }
 
 function playPreset(index: number): void {
@@ -286,21 +411,29 @@ function playPreset(index: number): void {
     worker = null;
     genBtn.disabled = false;
   }
-  presetSelect.value = entry.key;
   const { puzzle, solution, stars, difficulty } = entry.level;
-  // A preset must not reuse a generator seed link from a previous puzzle.
   history.replaceState(null, '', location.pathname + location.search);
-  loadPuzzle(puzzle, Int32Array.from(solution), stars, difficulty);
-  saveLast({ puzzle, solution, stars, difficulty, hash: '' });
+  progress.recent = entry.key;
+  saveLevelProgress(localStorage, progress);
+  loadPuzzle(puzzle, Int32Array.from(solution), stars, difficulty, entry.key);
+  saveLast({ puzzle, solution, stars, difficulty, hash: '', presetKey: entry.key });
   presetStatus.textContent = entry.label;
-  refreshPresetUi(entry.key);
+  refreshPresetUi();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-presetSelect.addEventListener('change', () => refreshPresetUi());
-presetPlay.addEventListener('click', () => playPreset(presetEntries.findIndex((e) => e.key === presetSelect.value)));
-presetPrev.addEventListener('click', () => playPreset(presetEntries.findIndex((e) => e.key === presetSelect.value) - 1));
-presetNext.addEventListener('click', () => playPreset(presetEntries.findIndex((e) => e.key === presetSelect.value) + 1));
+$('levels-entry').addEventListener('click', openLevelBrowser);
+$('preset-open').addEventListener('click', openLevelBrowser);
+$('levels-close').addEventListener('click', () => levelsDialog.close());
+$('levels-back').addEventListener('click', () => {
+  selectedChapter = null;
+  renderLevelBrowser();
+});
+levelsDialog.addEventListener('click', (event) => {
+  if (event.target === levelsDialog) levelsDialog.close();
+});
+presetPrev.addEventListener('click', () => playPreset(presetEntries.findIndex((e) => e.key === current?.presetKey) - 1));
+presetNext.addEventListener('click', () => playPreset(presetEntries.findIndex((e) => e.key === current?.presetKey) + 1));
 presetFile.addEventListener('change', async () => {
   const file = presetFile.files?.[0];
   if (!file) return;
@@ -309,7 +442,7 @@ presetFile.addEventListener('change', async () => {
     const pack = parsePresetPack(JSON.parse(await file.text()), file.name.endsWith('.json') ? file.name.slice(0, -5) : file.name);
     await savePersonalPack(pack);
     personalPack = pack;
-    refreshPresetUi(pack.levels.length ? `personal:${pack.levels[0].id}` : undefined);
+    refreshPresetUi();
     presetStatus.textContent = presetText(
       `已导入并离线保存 ${pack.levels.length} 关`,
       `Imported and saved ${pack.levels.length} puzzles offline`,
@@ -322,7 +455,7 @@ presetFile.addEventListener('change', async () => {
   }
 });
 
-async function initPresets(): Promise<void> {
+async function initPresets(openOnFirstVisit = false): Promise<void> {
   try {
     const response = await fetch('./presets/glimmith.json');
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -354,6 +487,7 @@ async function initPresets(): Promise<void> {
     presetStatus.textContent = `Local presets unavailable: ${err instanceof Error ? err.message : String(err)}`;
   }
   refreshPresetUi();
+  if (openOnFirstVisit) openLevelBrowser();
   if (betallerPack?.levels.length) {
     presetStatus.textContent = presetText(
       `已内置 ${betallerPack.levels.length} 道 Glimmith 关卡，可离线游玩`,
@@ -365,7 +499,7 @@ async function initPresets(): Promise<void> {
 
 // -- puzzle screen ----------------------------------------------------------------
 
-function loadPuzzle(p: Puzzle, solution: Int32Array, stars: number, difficulty: number): void {
+function loadPuzzle(p: Puzzle, solution: Int32Array, stars: number, difficulty: number, presetKey?: string): void {
   const ps = new PlayerState(p);
   const key = puzzleKey(p);
   try {
@@ -374,7 +508,7 @@ function loadPuzzle(p: Puzzle, solution: Int32Array, stars: number, difficulty: 
   } catch {
     /* ignore */
   }
-  current = { puzzle: p, solution, engine: createEngine(p), ps, key };
+  current = { puzzle: p, solution, engine: createEngine(p), ps, key, presetKey };
   board.eraser = false;
   $('eraser').classList.remove('active');
   board.setPuzzle(p, ps);
@@ -539,6 +673,18 @@ function refreshStatus(): void {
   const c = checkCompletion(current.engine, current.ps);
   board.setComplete(c.done && !board.reveal);
   doneEl.hidden = !c.done;
+  if (c.done && current.presetKey && !board.reveal) {
+    if (completeLevel(progress, current.presetKey)) {
+      saveLevelProgress(localStorage, progress);
+      refreshPresetUi();
+    }
+  }
+  $('done-new').textContent = current.presetKey
+    ? presetText('下一关 →', 'Next level →', '다음 레벨 →')
+    : M.newWindow;
+  $('done-share').textContent = current.presetKey
+    ? presetText('查看关卡地图', 'Browse levels', '레벨 선택')
+    : M.share;
   if (c.done) setStatus(M.complete, 'ok');
   else if (c.reason === 'dangling') setStatus(M.dangling);
   else if (c.reason === 'wrong') setStatus(M.wrong);
@@ -600,10 +746,20 @@ function generateFromForm(): void {
 
 // The finished window offers the next one (same settings, fresh seed) and a share.
 $('done-new').addEventListener('click', () => {
+  if (current?.presetKey) {
+    const index = presetEntries.findIndex((entry) => entry.key === current?.presetKey);
+    if (index >= 0 && index + 1 < presetEntries.length) playPreset(index + 1);
+    else openLevelBrowser();
+    return;
+  }
   $<HTMLInputElement>('seed').value = '';
   generateFromForm();
 });
 $('done-share').addEventListener('click', async () => {
+  if (current?.presetKey) {
+    openLevelBrowser();
+    return;
+  }
   const url = location.href;
   const btn = $<HTMLButtonElement>('done-share');
   try {
@@ -755,7 +911,7 @@ const fromHash = optionsFromHash();
 const last = loadLast();
 if (fromHash && last && last.hash === location.hash) {
   writeOptions(fromHash);
-  loadPuzzle(last.puzzle, Int32Array.from(last.solution), last.stars, last.difficulty);
+  loadPuzzle(last.puzzle, Int32Array.from(last.solution), last.stars, last.difficulty, last.presetKey);
   genStatus.textContent = `seed ${fromHash.seed}`;
 } else if (fromHash) {
   writeOptions(fromHash);
@@ -766,11 +922,9 @@ if (fromHash && last && last.hash === location.hash) {
   if (o) writeOptions(o);
   loadPuzzle(last.puzzle, Int32Array.from(last.solution), last.stars, last.difficulty);
 } else {
-  // First visit: a curated window rather than an empty stage. Shape Bank only,
-  // a symmetric outline with three shapes to fit, four stars.
+  // First launch opens the built-in level catalogue rather than generating a random puzzle.
   const intro: GenerateOptions = { width: 7, height: 7, rules: ['shapeBank'], minSize: 2, maxSize: 6, stars: [3, 4], seed: 125, mask: 'symmetric', walls: true, roseSymbols: 2, attempts: 300 };
   writeOptions(intro);
-  startGenerate(intro);
 }
 updateButtons();
-void initPresets();
+void initPresets(!fromHash && !last);

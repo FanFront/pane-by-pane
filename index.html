@@ -23,6 +23,10 @@
       </h1>
       <div id="stars" class="muted"></div>
       <nav id="actions" aria-label="tools">
+        <button type="button" id="levels-entry" class="icon levels-entry" aria-haspopup="dialog" aria-controls="levels-dialog" title="选择关卡">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="3" y="15" width="7" height="6" rx="1"/><rect x="14" y="15" width="7" height="6" rx="1"/></svg>
+          <span id="levels-entry-label">关卡</span>
+        </button>
         <button type="button" id="undo" class="icon" data-i18n-title="undoTitle" data-i18n-aria="undo">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4 12l5 5" /><path d="M4 12h10a5 5 0 0 1 0 10h-3" /></svg>
           <span data-i18n="undo">되돌리기</span>
@@ -71,6 +75,22 @@
         <button type="button" id="reveal-confirm" class="primary" data-i18n="reveal">정답 보기</button>
       </div>
     </dialog>
+    <dialog id="levels-dialog" aria-labelledby="levels-title">
+      <div class="dialog-head">
+        <strong id="levels-title">选择关卡</strong>
+        <button type="button" id="levels-close" class="small-icon" aria-label="Close">✕</button>
+      </div>
+      <p id="levels-total" class="small muted" role="status"></p>
+      <div id="level-zones" class="level-zones" role="group" aria-label="Zones"></div>
+      <div class="level-browser-head">
+        <button type="button" id="levels-back" hidden>← 章节</button>
+        <strong id="levels-subtitle"></strong>
+        <span id="levels-subprogress" class="muted small"></span>
+      </div>
+      <div id="level-chapters" class="level-chapters"></div>
+      <div id="level-grid" class="level-grid" hidden></div>
+      <p class="small muted" id="levels-legend">✓ 已完成 · ○ 未完成</p>
+    </dialog>
     <dialog id="warn-dialog">
       <div class="dialog-head"><strong id="warn-title" data-i18n="warnTitle">창을 만들 수 없습니다</strong></div>
       <p id="warn-text" class="muted"></p>
@@ -118,13 +138,11 @@
         <section id="preset-panel" aria-label="Preset puzzles">
           <div class="section-title" id="preset-heading">预设关卡</div>
           <p class="small muted" id="preset-intro">可游玩内置示例，或导入自己从已拥有的游戏中整理的关卡 JSON。导入后保存在本机。</p>
-          <label for="preset-select"><span id="preset-select-label">选择关卡</span>
-            <select id="preset-select"></select>
-          </label>
+          <button type="button" id="preset-open" class="primary level-open-button">选择 Zone / 章节 / 关卡</button>
+          <div id="preset-current" class="small muted" aria-live="polite"></div>
           <div class="preset-buttons">
-            <button type="button" id="preset-prev">上一关</button>
-            <button type="button" id="preset-play" class="primary">开始游玩</button>
-            <button type="button" id="preset-next">下一关</button>
+            <button type="button" id="preset-prev">← 上一关</button>
+            <button type="button" id="preset-next" class="primary">下一关 →</button>
           </div>
           <label class="preset-import">
             <span id="preset-import-label">导入本地 JSON 关卡包</span>
@@ -132,7 +150,9 @@
           </label>
           <div id="preset-status" class="muted small" role="status"></div>
         </section>
-        <form id="gen-form">
+        <details id="generator-tools">
+          <summary id="generator-heading">高级工具：随机生成关卡</summary>
+          <form id="gen-form">
           <div class="section-title" data-i18n="newWindow">새 창 만들기</div>
           <label><span data-i18n="size">크기</span>
             <span class="row">
@@ -177,7 +197,8 @@
           <label><span data-i18n="seed">seed</span> <input type="text" id="seed" data-i18n-placeholder="seedPlaceholder" placeholder="비우면 랜덤" /></label>
           <button type="submit" id="generate" data-i18n="generate">창 만들기</button>
           <div id="gen-status" class="muted"></div>
-        </form>
+          </form>
+        </details>
         <footer id="credit" class="small muted">
           <span data-i18n="madeBy">만든 사람</span>
           <a href="https://github.com/kairess" target="_blank" rel="noopener">kairess</a>

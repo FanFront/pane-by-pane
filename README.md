@@ -18,6 +18,12 @@ A stained-glass region-partition puzzle in the spirit of *The Artisan of Glimmit
 - **It ticks.** Every pane painted or erased plays a haptic tick, on Android through the Vibration API and on iOS through the one thing that still works there: a real, invisible `<input type=checkbox switch>` under the finger, moved around during a stroke so that WebKit's own drag-tracking haptic fires once per pane (see `src/web/haptics.ts`).
 - **Playable anywhere.** Touch and mouse gestures, undo/redo, autosave, shareable links, Korean, English or Simplified Chinese chosen from the browser and switchable in the header. The choice is saved locally.
 
+## Zone-based level selection and progress
+
+The **Levels** button opens a chapter browser instead of a 1,200+ item dropdown. Stages are grouped by **Zone 1 / Zone 2 / Zone 3**, chapters are sorted numerically (1 through 10), and level buttons show completed/not completed. Completion is awarded only for actual verified player solutions (not for revealing the answer) and is stored by stable puzzle ID in local storage. The generator remains available behind an Advanced section.
+
+[关卡入口与通关存档说明（中文）](docs/LEVELS.zh-CN.md)
+
 ## Built-in Glimmith puzzles
 
 The Android and GitHub Pages builds pull the [Betaller Glimmith puzzle corpus](https://github.com/Betaller/SolverOfTheArtisanOfGlimmith/tree/main/puzzles) during packaging and convert its official JSON puzzle/answer pairs to playable offline levels. At the verified upstream revision, **1,229 of 1,231** official-zone puzzle files were usable; two have no matching answer. The bundled puzzles appear directly in the **Preset puzzles** menu, with no JSON import step and no internet connection needed while playing.
