@@ -842,3 +842,15 @@ a {
   .level-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   #top .levels-entry { min-width: 48px; }
 }
+
+/* Keep the chapter entry accessible even on narrow Android phones. */
+@media (max-width: 480px) {
+  #top { gap: 4px; padding-left: 7px; padding-right: 7px; }
+  #top h1 { font-size: 14px; letter-spacing: 0; gap: 5px; }
+  #top h1 svg { width: 19px; height: 19px; }
+  #top #actions { gap: 0; }
+  #actions button.icon { min-width: 28px; padding: 4px 2px; }
+  #actions button.icon span { display: none; }
+  #actions #levels-entry { min-width: 44px; }
+  #actions #levels-entry span, #actions #lang span { display: block; }
+}
