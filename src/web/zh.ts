@@ -14,6 +14,7 @@ export const zh: Messages = {
   redoTitle: '重做 (⇧⌘Z)',
   langSwitch: '한국어',
   langSwitchTitle: '切换为韩语',
+  resetView: '重置棋盘缩放',
   goalDesc: '按照规则，将窗户中的每一格填上彩色玻璃，或者画出所有区域之间的分界线。',
   close: '关闭',
   revealTitle: '查看答案',
