@@ -64,6 +64,33 @@ test('Android native Back consumes UI state and minimizes only at the root', asy
   assert.equal(calls, 2);
 });
 
+test('Capacitor native bridge works without bundling @capacitor/core', async () => {
+  let onHardwareBack: (() => void) | undefined;
+  let minimized = 0;
+  const cap: CapacitorBridge = {
+    isNativePlatform: () => true,
+    getPlatform: () => 'android',
+    addListener: (plugin, event, callback) => {
+      assert.equal(plugin, 'App');
+      assert.equal(event, 'backButton');
+      onHardwareBack = callback;
+      return {};
+    },
+    nativePromise: async (plugin, method) => {
+      assert.equal(plugin, 'App');
+      assert.equal(method, 'minimizeApp');
+      minimized++;
+      return {};
+    },
+  };
+  assert.equal(installAndroidBack(() => false, cap), true);
+  assert.ok(onHardwareBack);
+  onHardwareBack();
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(minimized, 1);
+});
+
 test('web and non-Android platforms keep their native browser back behavior', () => {
   assert.equal(installAndroidBack(() => true, undefined), false);
   assert.equal(installAndroidBack(() => true, {
