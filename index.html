@@ -27,21 +27,17 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="3" y="15" width="7" height="6" rx="1"/><rect x="14" y="15" width="7" height="6" rx="1"/></svg>
           <span id="levels-entry-label">关卡</span>
         </button>
-        <button type="button" id="undo" class="icon" data-i18n-title="undoTitle" data-i18n-aria="undo">
+<button type="button" id="undo" class="icon" data-i18n-title="undoTitle" data-i18n-aria="undo">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4 12l5 5" /><path d="M4 12h10a5 5 0 0 1 0 10h-3" /></svg>
           <span data-i18n="undo">되돌리기</span>
         </button>
-        <button type="button" id="redo" class="icon" data-i18n-title="redoTitle" data-i18n-aria="redo">
+<button type="button" id="redo" class="icon" data-i18n-title="redoTitle" data-i18n-aria="redo">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 7 5 5-5 5" /><path d="M20 12H10a5 5 0 0 0 0 10h3" /></svg>
           <span data-i18n="redo">다시 실행</span>
         </button>
-        <button type="button" id="clear" class="icon" data-i18n-title="clear" data-i18n-aria="clear">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16" /><path d="M9 7V4h6v3" /><path d="M6 7l1 13h10l1-13" /><path d="M10 11v6M14 11v6" /></svg>
-          <span data-i18n="clear">전부 지우기</span>
-        </button>
-        <button type="button" id="lang" class="icon" data-i18n-title="langSwitchTitle">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></svg>
-          <span data-i18n="langSwitch">EN</span>
+        <button type="button" id="settings-entry" class="icon" aria-haspopup="dialog" aria-controls="settings-dialog" aria-label="Settings" title="Settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06-1.9 1.9-.06-.06A1.65 1.65 0 0 0 16 18.4a1.65 1.65 0 0 0-1 1.52V20h-2v-.08A1.65 1.65 0 0 0 12 18.4a1.65 1.65 0 0 0-1.82.33l-.06.06-1.9-1.9.06-.06A1.65 1.65 0 0 0 8.6 15a1.65 1.65 0 0 0-1.52-1H7v-2h.08A1.65 1.65 0 0 0 8.6 11a1.65 1.65 0 0 0-.33-1.82l-.06-.06 1.9-1.9.06.06A1.65 1.65 0 0 0 12 7.6 1.65 1.65 0 0 0 13 6.08V6h2v.08A1.65 1.65 0 0 0 16 7.6a1.65 1.65 0 0 0 1.82-.33l.06-.06 1.9 1.9-.06.06A1.65 1.65 0 0 0 19.4 11a1.65 1.65 0 0 0 1.52 1H21v2h-.08A1.65 1.65 0 0 0 19.4 15Z"/></svg>
+          <span id="settings-entry-label">Settings</span>
         </button>
       </nav>
     </header>
@@ -98,45 +94,36 @@
         <button type="button" id="warn-close" class="primary" data-i18n="ok">확인</button>
       </div>
     </dialog>
-    <div id="app">
-      <main id="board-wrap">
-        <div class="goal-area" id="goal-area" hidden>
-          <div id="goal-bar" role="group" data-i18n-aria="goal"></div>
-          <div id="coach" role="note" hidden>
-            <strong data-i18n="coachTitle">이 창의 규칙</strong>
-            <p data-i18n="coachText"></p>
-            <button type="button" id="coach-ok" data-i18n="coachOk">알겠어요</button>
-          </div>
-        </div>
-        <div id="stage">
-          <canvas id="board"></canvas>
-        </div>
-      </main>
-      <aside id="panel">
-        <div id="info" hidden>
-          <div class="status-row">
-            <div id="status"></div>
-            <div id="done" hidden>
-              <button type="button" id="done-new" class="primary" data-i18n="newWindow">새 창 만들기</button>
-              <button type="button" id="done-share" data-i18n="share">퍼즐 공유</button>
-            </div>
-          </div>
-          <div class="toolbar" id="play-toolbar" role="group" aria-label="Puzzle tools">
-            <button type="button" id="undo-mobile" class="mobile-tool" data-i18n-title="undoTitle" data-i18n-aria="undo"><span class="mobile-tool-symbol" aria-hidden="true">↶</span><span data-i18n="undo">되돌리기</span></button>
-            <button type="button" id="redo-mobile" class="mobile-tool" data-i18n-title="redoTitle" data-i18n-aria="redo"><span class="mobile-tool-symbol" aria-hidden="true">↷</span><span data-i18n="redo">다시 실행</span></button>
-            <button type="button" id="eraser" data-i18n="eraser">지우개 (드래그)</button>
-            <button type="button" id="check" data-i18n="check">규칙 확인</button>
-            <button type="button" id="hint" data-i18n="hint">힌트</button>
+
+    <dialog id="settings-dialog" aria-labelledby="settings-title">
+      <div class="dialog-head settings-head">
+        <strong id="settings-title">Settings</strong>
+        <button type="button" id="settings-close" class="icon small-icon" aria-label="Close" title="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="settings-content">
+        <section class="settings-group" aria-labelledby="settings-gameplay-heading">
+          <h2 id="settings-gameplay-heading" class="section-title">Game options</h2>
+          <div class="settings-actions">
+<button type="button" id="clear" class="icon" data-i18n-title="clear" data-i18n-aria="clear">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16" /><path d="M9 7V4h6v3" /><path d="M6 7l1 13h10l1-13" /><path d="M10 11v6M14 11v6" /></svg>
+          <span data-i18n="clear">전부 지우기</span>
+        </button>
             <button type="button" id="reveal" data-i18n="reveal">정답 보기</button>
+<button type="button" id="lang" class="icon" data-i18n-title="langSwitchTitle">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></svg>
+          <span data-i18n="langSwitch">EN</span>
+        </button>
           </div>
-          <label><span data-i18n="errorMode">오류 표시</span>
+          <label><span id="settings-error-label" data-i18n="errorMode">오류 표시</span>
             <select id="error-mode">
               <option value="always" selected data-i18n="errAlways">항상 (규칙을 어긴 칸에 빗금)</option>
               <option value="check" data-i18n="errCheck">규칙 확인을 눌렀을 때</option>
               <option value="off" data-i18n="errOff">끄기</option>
             </select>
           </label>
-        </div>
+        </section>
         <section id="preset-panel" aria-label="Preset puzzles">
           <div class="section-title" id="preset-heading">预设关卡</div>
           <p class="small muted" id="preset-intro">可游玩内置示例，或导入自己从已拥有的游戏中整理的关卡 JSON。导入后保存在本机。</p>
@@ -206,7 +193,42 @@
           <a href="https://github.com/kairess" target="_blank" rel="noopener">kairess</a>
           · <a href="https://github.com/kairess/pane-by-pane" target="_blank" rel="noopener">GitHub</a>
         </footer>
-      </aside>
+
+      </div>
+    </dialog>
+    <div id="app">
+      <main id="board-wrap">
+        <div class="goal-area" id="goal-area" hidden>
+          <div id="goal-bar" role="group" data-i18n-aria="goal"></div>
+          <div id="coach" role="note" hidden>
+            <strong data-i18n="coachTitle">이 창의 규칙</strong>
+            <p data-i18n="coachText"></p>
+            <button type="button" id="coach-ok" data-i18n="coachOk">알겠어요</button>
+          </div>
+        </div>
+        <div id="stage">
+          <canvas id="board"></canvas>
+        </div>
+        <div id="info" hidden>
+          <div class="status-row">
+            <div id="status"></div>
+            <div id="done" hidden>
+              <button type="button" id="done-new" class="primary" data-i18n="newWindow">새 창 만들기</button>
+              <button type="button" id="done-share" data-i18n="share">퍼즐 공유</button>
+            </div>
+          </div>
+          <div class="toolbar" id="play-toolbar" role="group" aria-label="Puzzle tools">
+            <button type="button" id="undo-mobile" class="mobile-tool" data-i18n-title="undoTitle" data-i18n-aria="undo"><span class="mobile-tool-symbol" aria-hidden="true">↶</span><span data-i18n="undo">되돌리기</span></button>
+            <button type="button" id="redo-mobile" class="mobile-tool" data-i18n-title="redoTitle" data-i18n-aria="redo"><span class="mobile-tool-symbol" aria-hidden="true">↷</span><span data-i18n="redo">다시 실행</span></button>
+            <button type="button" id="eraser" data-i18n="eraser">지우개 (드래그)</button>
+            <button type="button" id="check" data-i18n="check">규칙 확인</button>
+            <button type="button" id="hint" data-i18n="hint">힌트</button>
+            
+          </div>
+
+        </div>
+      </main>
+
     </div>
     <script type="module" src="./src/web/main.ts"></script>
   </body>
