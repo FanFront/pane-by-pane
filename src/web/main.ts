@@ -942,7 +942,11 @@ document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: fals
 /** Return true when an in-app back action was consumed. */
 function navigateBack(): boolean {
   const dialogs = [...document.querySelectorAll<HTMLDialogElement>('dialog[open]')];
-  const opened = dialogs.at(-1) ?? null;
+  // A warning can appear over Settings. The focused modal is the topmost one
+  // even when its element occurs earlier in the document than Settings.
+  const active = document.activeElement;
+  const focusedDialog = dialogs.find((dialog) => active !== null && dialog.contains(active));
+  const opened = focusedDialog ?? dialogs.at(-1) ?? null;
   const action = chooseBackAction(opened?.id ?? null, selectedChapter !== null, !coach.hidden);
   if (action === 'chapter') {
     selectedChapter = null;
