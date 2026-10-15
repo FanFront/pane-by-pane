@@ -392,6 +392,12 @@ function loadPuzzle(p: Puzzle, solution: Int32Array, stars: number, difficulty: 
       add(M.rule.shapeBank, M.desc.shapeBank, icons);
     } else if (c.type === 'rose') {
       add(M.rule.rose, M.desc.rose(['○', '△', '□', '☆'].slice(0, c.symbolCount).join(' ')));
+    } else if (c.type === 'fenceShape') {
+      add(presetText('旋转围栏', 'Rotatable fence', '회전 울타리'),
+        presetText('此格的边界形状允许旋转或翻转', 'Boundary pattern may rotate or flip', '경계 모양을 회전/반사 가능'));
+    } else if (c.type === 'compass') {
+      add(presetText('罗盘', 'Compass', '나침반'),
+        presetText('统计同一区域中上下左右的格子数', 'Count same-region cells above/below/left/right', '같은 영역의 상하좌우 칸 수'));
     } else if (c.type === 'sizeSeparation') {
       add(M.rule.sizeSeparation, M.desc.sizeSeparation);
     } else if (c.type === 'solitude') {
@@ -451,6 +457,8 @@ function buildGoalBar(p: Puzzle, stars: number): void {
     else if (c.type === 'polyomino') specs.set('polyomino', () => chip(M.chip.polyomino));
     else if (c.type === 'gemini') specs.set('gemini', () => chip(M.chip.gemini));
     else if (c.type === 'delta') specs.set('delta', () => chip(M.chip.delta));
+    else if (c.type === 'fenceShape') specs.set('fenceShape', () => chip(presetText('旋转围栏', 'Fence', '울타리')));
+    else if (c.type === 'compass') specs.set('compass', () => chip(presetText('罗盘', 'Compass', '나침반')));
     else if (c.type === 'sizeSeparation') specs.set('sizeSeparation', () => chip(M.chip.sizeSeparation));
     else if (c.type === 'solitude') specs.set('solitude', () => chip(M.chip.solitude));
     else if (c.type === 'boxy') specs.set('boxy', () => chip(M.chip.boxy));
@@ -465,7 +473,7 @@ function buildGoalBar(p: Puzzle, stars: number): void {
     else if (c.type === 'loopy') specs.set('loopy', () => chip(M.chip.loopy));
     else if (c.type === 'watchtower') specs.set('watchtower', () => chip(M.chip.watchtower));
   }
-  for (const k of ['areaNumber', 'range', 'shapeBank', 'rose', 'solitude', 'polyomino', 'boxy', 'nonBoxy', 'gemini', 'delta', 'inequality', 'difference', 'mingle', 'match', 'mismatch', 'palisade', 'watchtower', 'bricky', 'loopy', 'sizeSeparation']) specs.get(k)?.();
+  for (const k of ['areaNumber', 'range', 'shapeBank', 'rose', 'solitude', 'polyomino', 'boxy', 'nonBoxy', 'gemini', 'delta', 'inequality', 'difference', 'mingle', 'match', 'mismatch', 'palisade', 'watchtower', 'fenceShape', 'compass', 'bricky', 'loopy', 'sizeSeparation']) specs.get(k)?.();
   chip('?', [], 'info').setAttribute('aria-label', M.chip.open);
   goalArea.hidden = false;
   board.layout();
