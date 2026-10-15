@@ -7,6 +7,8 @@ import { Board, shapeIcon, solutionView } from './board.ts';
 import { PlayerState, WALL } from './model.ts';
 import type { WorkerIn, WorkerOut } from './worker.ts';
 import { M, applyStatic, lang, setLang } from './i18n.ts';
+import { parsePresetPack, type PresetLevel, type PresetPack } from '../presets.ts';
+import { readPersonalPack, savePersonalPack } from './presetStore.ts';
 
 applyStatic();
 
@@ -37,7 +39,10 @@ function warn(text: string, title = M.warnTitle): void {
 }
 $('warn-close').addEventListener('click', () => warnDialog.close());
 // Cycle through Korean → English → Simplified Chinese; chosen language persists.
-$('lang').addEventListener('click', () => setLang(lang === 'ko' ? 'en' : lang === 'en' ? 'zh' : 'ko'));
+$('lang').addEventListener('click', () => {
+  setLang(lang === 'ko' ? 'en' : lang === 'en' ? 'zh' : 'ko');
+  refreshPresetUi();
+});
 
 interface Current {
   puzzle: Puzzle;
@@ -206,6 +211,128 @@ function saveMarks(): void {
   } catch {
     /* ignore */
   }
+}
+
+// -- personal and bundled preset levels -------------------------------------------
+
+interface PresetEntry {
+  key: string;
+  label: string;
+  level: PresetLevel;
+}
+let bundledPack: PresetPack | null = null;
+let personalPack: PresetPack | null = null;
+let presetEntries: PresetEntry[] = [];
+const presetSelect = $<HTMLSelectElement>('preset-select');
+const presetStatus = $('preset-status');
+const presetPlay = $<HTMLButtonElement>('preset-play');
+const presetPrev = $<HTMLButtonElement>('preset-prev');
+const presetNext = $<HTMLButtonElement>('preset-next');
+const presetFile = $<HTMLInputElement>('preset-file');
+
+function presetText(zh: string, en: string, ko: string): string {
+  return lang === 'zh' ? zh : lang === 'ko' ? ko : en;
+}
+
+function refreshPresetUi(preferred?: string): void {
+  const selection = preferred ?? presetSelect.value;
+  $('preset-heading').textContent = presetText('预设关卡', 'Preset puzzles', '사전 설정 퍼즐');
+  $('preset-intro').textContent = presetText(
+    '可游玩内置示例，或导入自己整理的关卡 JSON；数据仅存储在本机。',
+    'Play bundled examples or import your own JSON pack; imported data stays on this device.',
+    '내장 예제를 플레이하거나 자신의 JSON 팩을 가져오세요. 가져온 데이터는 기기에만 저장됩니다.',
+  );
+  $('preset-select-label').textContent = presetText('选择关卡', 'Choose a puzzle', '퍼즐 선택');
+  $('preset-import-label').textContent = presetText('导入本地 JSON 关卡包', 'Import a local JSON pack', '로컬 JSON 퍼즐 팩 가져오기');
+  presetPlay.textContent = presetText('开始游玩', 'Play puzzle', '퍼즐 시작');
+  presetPrev.textContent = presetText('上一关', 'Previous', '이전');
+  presetNext.textContent = presetText('下一关', 'Next', '다음');
+
+  const packs: { origin: string; pack: PresetPack }[] = [];
+  if (bundledPack) packs.push({ origin: 'bundled', pack: bundledPack });
+  if (personalPack) packs.push({ origin: 'personal', pack: personalPack });
+  presetEntries = packs.flatMap(({ origin, pack }) =>
+    pack.levels.map((level) => ({
+      key: `${origin}:${level.id}`,
+      label: `${pack.name} / ${level.chapter ? level.chapter + ' / ' : ''}${level.title}`,
+      level,
+    })),
+  );
+
+  presetSelect.replaceChildren();
+  for (const entry of presetEntries) {
+    const option = document.createElement('option');
+    option.value = entry.key;
+    option.textContent = entry.label;
+    presetSelect.append(option);
+  }
+  if (presetEntries.some((e) => e.key === selection)) presetSelect.value = selection;
+  const index = presetEntries.findIndex((e) => e.key === presetSelect.value);
+  presetPlay.disabled = index < 0;
+  presetPrev.disabled = index <= 0;
+  presetNext.disabled = index < 0 || index >= presetEntries.length - 1;
+  if (index < 0) presetStatus.textContent = presetText('尚未加载关卡', 'No puzzles loaded', '불러온 퍼즐 없음');
+}
+
+function playPreset(index: number): void {
+  const entry = presetEntries[index];
+  if (!entry) return;
+  if (worker) {
+    worker.terminate();
+    worker = null;
+    genBtn.disabled = false;
+  }
+  presetSelect.value = entry.key;
+  const { puzzle, solution, stars, difficulty } = entry.level;
+  // A preset must not reuse a generator seed link from a previous puzzle.
+  history.replaceState(null, '', location.pathname + location.search);
+  loadPuzzle(puzzle, Int32Array.from(solution), stars, difficulty);
+  saveLast({ puzzle, solution, stars, difficulty, hash: '' });
+  presetStatus.textContent = entry.label;
+  refreshPresetUi(entry.key);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+presetSelect.addEventListener('change', () => refreshPresetUi());
+presetPlay.addEventListener('click', () => playPreset(presetEntries.findIndex((e) => e.key === presetSelect.value)));
+presetPrev.addEventListener('click', () => playPreset(presetEntries.findIndex((e) => e.key === presetSelect.value) - 1));
+presetNext.addEventListener('click', () => playPreset(presetEntries.findIndex((e) => e.key === presetSelect.value) + 1));
+presetFile.addEventListener('change', async () => {
+  const file = presetFile.files?.[0];
+  if (!file) return;
+  try {
+    if (file.size > 20 * 1024 * 1024) throw new Error('JSON file exceeds 20 MiB');
+    const pack = parsePresetPack(JSON.parse(await file.text()), file.name.replace(/\\.json$/i, ''));
+    await savePersonalPack(pack);
+    personalPack = pack;
+    refreshPresetUi(pack.levels.length ? `personal:${pack.levels[0].id}` : undefined);
+    presetStatus.textContent = presetText(
+      `已导入并离线保存 ${pack.levels.length} 关`,
+      `Imported and saved ${pack.levels.length} puzzles offline`,
+      `${pack.levels.length}개 퍼즐을 오프라인에 저장했습니다`,
+    );
+  } catch (err) {
+    warn(presetText('导入失败：', 'Import failed: ', '가져오기 실패: ') + (err instanceof Error ? err.message : String(err)));
+  } finally {
+    presetFile.value = '';
+  }
+});
+
+async function initPresets(): Promise<void> {
+  try {
+    const response = await fetch('./presets/glimmith.json');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    bundledPack = parsePresetPack(await response.json(), '内置关卡');
+  } catch (err) {
+    presetStatus.textContent = `Bundled presets unavailable: ${err instanceof Error ? err.message : String(err)}`;
+  }
+  try {
+    const imported = await readPersonalPack();
+    if (imported) personalPack = parsePresetPack(imported);
+  } catch (err) {
+    presetStatus.textContent = `Local presets unavailable: ${err instanceof Error ? err.message : String(err)}`;
+  }
+  refreshPresetUi();
 }
 
 // -- puzzle screen ----------------------------------------------------------------
@@ -609,4 +736,4 @@ if (fromHash && last && last.hash === location.hash) {
   writeOptions(intro);
   startGenerate(intro);
 }
-updateButtons();
+updateButtons();\n
