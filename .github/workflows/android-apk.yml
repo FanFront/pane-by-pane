@@ -85,7 +85,12 @@ jobs:
       - name: Build and test web game, package Android APK
         env:
           PBP_ANDROID_VERSION_CODE: ${{ github.run_number }}
-        run: bash scripts/build-android.sh
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" != "pull_request" ]]; then
+            export PBP_ANDROID_SIGNING_KEYSTORE="$HOME/.android/debug.keystore"
+          fi
+          bash scripts/build-android.sh
 
       - name: Verify persistent APK signing certificate
         if: github.event_name != 'pull_request'
