@@ -147,8 +147,12 @@ export class Board {
     const cs = getComputedStyle(wrap);
     const strip = wrap.querySelector<HTMLElement>('.goal-area');
     const stripH = strip && !strip.hidden ? strip.offsetHeight + 8 : 0;
+    // Reserve space for the always-visible puzzle controls at the foot of the board.
+    // Without this, the canvas can sit underneath the dock on short Android screens.
+    const dock = wrap.querySelector<HTMLElement>('#info');
+    const dockH = dock && !dock.hidden ? dock.offsetHeight + 12 : 0;
     const innerW = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    const innerH = (wrap.clientHeight || 9999) - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - stripH;
+    const innerH = (wrap.clientHeight || 9999) - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - stripH - dockH;
     const avail = Math.min(innerW, innerH) - 2 * this.pad - 8;
     this.cell = Math.max(30, Math.min(72, Math.floor(avail / Math.max(this.grid.w, this.grid.h))));
     const cssW = this.grid.w * this.cell + 2 * this.pad;
