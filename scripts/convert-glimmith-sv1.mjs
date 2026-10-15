@@ -14,7 +14,6 @@ import { basename, extname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parsePresetPack } from '../src/presets.ts';
 
-const EDGE_TYPES = new Set(['=', '!', '<', '>']);
 const GLOBAL_RULES = new Set([
   'sizeSeparation', 'solitude', 'boxy', 'nonBoxy', 'mingle', 'match',
   'mismatch', 'bricky', 'loopy',
@@ -108,13 +107,13 @@ export function convertSV1(source, options = {}) {
   for (const spec of solutionEdges) {
     const e = sv1Edge(spec);
     if (e) {
-      if (!active.has(e[0]) || !active.has(e[1])) throw new Error('Answer edge crosses a hole');
-      boundaries.add(edgeKey(...e));
+      // A drawn edge beside an irregular-board hole is part of the frame.
+      if (active.has(e[0]) && active.has(e[1])) boundaries.add(edgeKey(...e));
     }
   }
   for (const spec of initEdges) {
     const e = sv1Edge(spec);
-    if (e) {
+    if (e && active.has(e[0]) && active.has(e[1])) {
       if (!boundaries.has(edgeKey(...e))) throw new Error('Fixed wall not in solution');
       walls.push({ a: e[0], b: e[1] });
     }
@@ -199,7 +198,7 @@ export function convertDirectory(input, output, metaPath) {
     ? readdirSync(root).filter((name) => ['.sv1', '.txt'].includes(extname(name).toLowerCase())).sort().map((name) => join(root, name))
     : [root];
   const metadata = metaPath ? JSON.parse(readFileSync(resolve(metaPath), 'utf8')) : {};
-  const levels = [], failures = [];
+  const levels = [], failures = [], seenIds = new Set();
   for (const file of paths) {
     const text = readFileSync(file, 'utf8');
     const records = text.split(/(?=^SV1\s*$)/m).filter((s) => s.trim());
@@ -207,7 +206,13 @@ export function convertDirectory(input, output, metaPath) {
       const id = record.match(/^ID\s+(\S+)/m)?.[1] ?? `${basename(file)}-${index + 1}`;
       try {
         const extra = metadata[id] ?? {};
-        levels.push(convertSV1(record, { id, ...extra }));
+        const level = convertSV1(record, { id, ...extra });
+        if (seenIds.has(level.id)) throw new Error('Duplicate puzzle ID');
+        // Validate each entry in isolation so a bad export does not discard the
+        // otherwise valid puzzles in the same folder.
+        parsePresetPack({ version: 1, name: 'validation', levels: [level] });
+        levels.push(level);
+        seenIds.add(level.id);
       } catch (err) {
         failures.push(`${basename(file)} [${id}]: ${err instanceof Error ? err.message : String(err)}`);
       }
