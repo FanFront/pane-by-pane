@@ -1,0 +1,37 @@
+name: Check Betaller JSON compatibility
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/betaller-puzzle-support]
+    paths:
+      - src/importBetaller.ts
+      - src/engine/**
+      - scripts/convert-betaller.mjs
+      - .github/workflows/betaller-compat.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify-upstream-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Checkout third-party puzzle data for temporary verification only
+        run: git clone --depth 1 https://github.com/Betaller/SolverOfTheArtisanOfGlimmith.git ../Betaller
+      - name: Validate original puzzle/answer pairs (do not publish them)
+        run: |
+          node scripts/convert-betaller.mjs --root ../Betaller --output /tmp/glimmith-private.json
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const x=JSON.parse(readFileSync("/tmp/glimmith-private.json.report.json", "utf8"));
+            console.log(JSON.stringify({total:x.total,converted:x.converted,skipped:x.skipped,topFailures:x.failures.slice(0,12)},null,2));
+            if (x.converted===0) process.exit(1);
+          '
