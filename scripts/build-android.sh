@@ -22,7 +22,8 @@ npm run build
 npm install --no-save --package-lock=false --no-audit --no-fund \
   "@capacitor/core@${CAPACITOR_VERSION}" \
   "@capacitor/cli@${CAPACITOR_VERSION}" \
-  "@capacitor/android@${CAPACITOR_VERSION}"
+  "@capacitor/android@${CAPACITOR_VERSION}" \
+  "@capacitor/app@8.0.0"
 
 # The native project is intentionally generated, not committed.
 if [[ -d android ]]; then
