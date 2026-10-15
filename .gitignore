@@ -22,3 +22,7 @@ android/
 # Personal Glimmith level exports: never publish game-owned puzzle data
 public/presets/private.json
 private-exports/
+# Generated from the Betaller repository by scripts/pull-betaller-puzzles.sh
+public/presets/betaller.json
+public/presets/betaller.json.report.json
+public/presets/private.json.report.json
