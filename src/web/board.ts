@@ -515,7 +515,7 @@ export class Board {
     // cells that carry a clue: their error hatching leaves the middle clear so the clue stays readable
     const clueCells = new Set<number>();
     for (const clue of p.clues) {
-      if (clue.type === 'areaNumber' || clue.type === 'polyomino' || clue.type === 'palisade') clueCells.add(clue.cell);
+      if (clue.type === 'areaNumber' || clue.type === 'polyomino' || clue.type === 'palisade' || clue.type === 'fenceShape' || clue.type === 'compass') clueCells.add(clue.cell);
       else if (clue.type === 'rose') for (const sym of clue.symbols) clueCells.add(sym.cell);
     }
     for (let c = 0; c < g.cells; c++) {
@@ -567,7 +567,12 @@ export class Board {
       if (clue.type === 'areaNumber') this.text(String(clue.value), clue.cell, clueFont);
       else if (clue.type === 'rose') for (const sym of clue.symbols) this.text(ROSE_GLYPHS[sym.symbol] ?? String(sym.symbol), sym.cell, `${Math.round(s * 0.42)}px sans-serif`);
       else if (clue.type === 'polyomino') this.miniShape(clue.shape, clue.cell);
-      else if (clue.type === 'palisade') this.palisadeTile(clue.sides, clue.cell);
+      else if (clue.type === 'palisade' || clue.type === 'fenceShape') this.palisadeTile(clue.sides, clue.cell);
+      else if (clue.type === 'compass') {
+        const label = [['↑', clue.up], ['↓', clue.down], ['←', clue.left], ['→', clue.right]]
+          .filter(([, n]) => Number(n) >= 0).map(([dir, n]) => `${dir}${n}`).join(' ');
+        this.text(label || '✧', clue.cell, `600 ${Math.round(s * 0.18)}px sans-serif`);
+      }
     }
     ctx.globalAlpha = 1;
     if (lit > 0 && this.complete) this.drawShine();
