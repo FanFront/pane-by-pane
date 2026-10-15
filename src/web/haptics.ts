@@ -152,7 +152,11 @@ export class Haptics {
     const b = this.canvas.clientWidth || r.width;
     sw.style.width = `${SWITCH_WIDTH * b}px`;
     sw.style.height = `${this.canvas.clientHeight || r.height}px`;
-    sw.style.left = `${clientX - r.left - boards * b}px`;
+    // The canvas and switch share the stage transform. Convert the screen
+    // coordinate back to its unscaled local CSS units before positioning.
+    const scaleX = r.width / (this.stage.offsetWidth || 1);
+    const localX = (clientX - r.left) / (scaleX || 1);
+    sw.style.left = `${localX - boards * b}px`;
     // force layout now: WebKit measures the finger against the switch's box
     // when it handles the touch event that is being dispatched
     void sw.offsetWidth;
