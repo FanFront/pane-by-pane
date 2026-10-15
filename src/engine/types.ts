@@ -26,7 +26,9 @@ export type RuleKind =
   | 'palisade'
   | 'bricky'
   | 'loopy'
-  | 'watchtower';
+  | 'watchtower'
+  | 'fenceShape'
+  | 'compass';
 
 export const RULE_KINDS: readonly RuleKind[] = [
   'areaNumber',
@@ -49,6 +51,8 @@ export const RULE_KINDS: readonly RuleKind[] = [
   'bricky',
   'loopy',
   'watchtower',
+  'fenceShape',
+  'compass',
 ];
 
 export interface EdgeRef {
@@ -202,6 +206,23 @@ export interface DifferenceClue {
   value: number;
 }
 
+/** A fence pattern can rotate/reflect: sides N=1,E=2,S=4,W=8. */
+export interface FenceShapeClue {
+  type: 'fenceShape';
+  cell: number;
+  sides: number;
+}
+
+/** Number of cells in the SAME region strictly above/below/left/right of this clue. -1 = no restriction. */
+export interface CompassClue {
+  type: 'compass';
+  cell: number;
+  up: number;
+  down: number;
+  left: number;
+  right: number;
+}
+
 export type Clue =
   | AreaNumberClue
   | RangeClue
@@ -222,7 +243,9 @@ export type Clue =
   | PalisadeClue
   | BrickyClue
   | LoopyClue
-  | WatchtowerClue;
+  | WatchtowerClue
+  | FenceShapeClue
+  | CompassClue;
 
 export interface Puzzle {
   width: number;
