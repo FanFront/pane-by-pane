@@ -115,6 +115,23 @@
             </select>
           </label>
         </div>
+        <section id="preset-panel" aria-label="Preset puzzles">
+          <div class="section-title" id="preset-heading">预设关卡</div>
+          <p class="small muted" id="preset-intro">可游玩内置示例，或导入自己从已拥有的游戏中整理的关卡 JSON。导入后保存在本机。</p>
+          <label for="preset-select"><span id="preset-select-label">选择关卡</span>
+            <select id="preset-select"></select>
+          </label>
+          <div class="preset-buttons">
+            <button type="button" id="preset-prev">上一关</button>
+            <button type="button" id="preset-play" class="primary">开始游玩</button>
+            <button type="button" id="preset-next">下一关</button>
+          </div>
+          <label class="preset-import">
+            <span id="preset-import-label">导入本地 JSON 关卡包</span>
+            <input type="file" id="preset-file" accept=".json,application/json" />
+          </label>
+          <div id="preset-status" class="muted small" role="status"></div>
+        </section>
         <form id="gen-form">
           <div class="section-title" data-i18n="newWindow">새 창 만들기</div>
           <label><span data-i18n="size">크기</span>
