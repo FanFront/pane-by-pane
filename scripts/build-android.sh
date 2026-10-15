@@ -33,6 +33,31 @@ else
   npx --no-install cap sync android
 fi
 
+# This project regenerates android/ from scratch, so configure the native
+# BridgeActivity on every build. Android 15/16 enforce edge-to-edge system
+# bars; Capacitor SystemBars then forwards accurate safe-area insets to CSS
+# (or uses native WebView padding on pre-Chromium-140 WebViews).
+MAIN_ACTIVITY="android/app/src/main/java/dev/fanfront/panebypane/MainActivity.java"
+if [[ ! -f "$MAIN_ACTIVITY" ]]; then
+  echo "Missing generated Android MainActivity: $MAIN_ACTIVITY" >&2
+  exit 1
+fi
+cat > "$MAIN_ACTIVITY" <<'JAVA'
+package dev.fanfront.panebypane;
+
+import android.os.Bundle;
+import androidx.activity.EdgeToEdge;
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
+    }
+}
+JAVA
+
 # Capacitor regenerates app/build.gradle for each build. Explicitly bind the
 # debug signing configuration to the persistent CI keystore when supplied,
 # rather than assuming Gradle's automatically selected debug key is the same.
