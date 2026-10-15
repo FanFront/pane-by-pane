@@ -728,7 +728,97 @@ a {
   }
 }
 
-/* -- local puzzle pack selector ------------------------------------------------ */
+/* -- level browser -------------------------------------------------------- */
+#levels-dialog {
+  width: min(94vw, 780px);
+  max-height: 88dvh;
+  padding: 18px;
+}
+#levels-dialog .dialog-head { margin-bottom: 8px; }
+#levels-total { margin: 4px 0 14px; }
+.level-zones {
+  display: flex;
+  gap: 6px;
+  padding-bottom: 12px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.level-zones button {
+  flex: 1 0 auto;
+  min-height: 45px;
+  font-weight: 600;
+}
+.level-zones button[aria-pressed="true"] {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.level-browser-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0 12px;
+  border-top: 1px solid var(--line);
+}
+#levels-subtitle { flex: 1; font-family: var(--serif); }
+#levels-back { padding: 6px 9px; }
+.level-chapters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.level-chapter {
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
+  min-width: 0;
+  text-align: left;
+  background: #fffdf8;
+}
+.level-chapter strong { overflow-wrap: anywhere; }
+.level-chapter .level-count { font-size: 12px; color: var(--muted); }
+.level-meter { width: 100%; height: 5px; overflow: hidden; border-radius: 5px; background: var(--line); }
+.level-meter > span { display: block; height: 100%; background: var(--accent); }
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 9px;
+  max-height: 53dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 1px 10px;
+}
+#level-grid[hidden], #level-chapters[hidden], #levels-back[hidden] { display: none !important; }
+.level-tile {
+  min-width: 0;
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 4px;
+  background: #fff;
+}
+.level-tile strong { font-size: 15px; }
+.level-tile small { font-size: 11px; color: var(--muted); }
+.level-tile.is-complete {
+  border-color: var(--accent);
+  background: #eff6ee;
+}
+.level-tile.is-complete small { color: #416a36; font-weight: 600; }
+.level-tile.is-current { outline: 2px solid var(--fg); outline-offset: -3px; }
+#levels-legend { margin-bottom: 0; }
+#levels-close { font-size: 18px; min-width: 34px; }
+#generator-tools {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+#generator-heading {
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 8px 0;
+}
+#generator-tools #gen-form { margin-top: 8px; }
 #preset-panel {
   border-top: 1px solid var(--line);
   padding-top: 16px;
@@ -736,32 +826,19 @@ a {
   flex-direction: column;
   gap: 10px;
 }
-#preset-panel p {
-  margin: 0;
-  line-height: 1.45;
+#preset-panel p { margin: 0; line-height: 1.45; }
+.level-open-button {
+  min-height: 46px;
+  font-size: 15px;
+  font-weight: 600;
 }
-#preset-select {
-  max-width: 100%;
-  width: 100%;
-}
-.preset-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1.4fr 1fr;
-  gap: 4px;
-}
-.preset-buttons button {
-  padding-inline: 3px;
-}
-#preset-play {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-}
-#preset-file {
-  max-width: 100%;
-  font: inherit;
-  font-size: 12px;
-}
-#preset-status {
-  overflow-wrap: anywhere;
+#preset-current { overflow-wrap: anywhere; }
+.preset-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+#preset-file { max-width: 100%; font: inherit; font-size: 12px; }
+#preset-status { overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+  #levels-dialog { padding: 12px; }
+  .level-chapters { grid-template-columns: 1fr; }
+  .level-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #top .levels-entry { min-width: 48px; }
 }
