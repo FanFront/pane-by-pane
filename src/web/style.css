@@ -727,3 +727,41 @@ a {
     font-size: 9px;
   }
 }
+
+/* -- local puzzle pack selector ------------------------------------------------ */
+#preset-panel {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#preset-panel p {
+  margin: 0;
+  line-height: 1.45;
+}
+#preset-select {
+  max-width: 100%;
+  width: 100%;
+}
+.preset-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  gap: 4px;
+}
+.preset-buttons button {
+  padding-inline: 3px;
+}
+#preset-play {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+#preset-file {
+  max-width: 100%;
+  font: inherit;
+  font-size: 12px;
+}
+#preset-status {
+  overflow-wrap: anywhere;
+}
