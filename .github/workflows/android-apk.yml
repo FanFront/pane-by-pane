@@ -87,7 +87,8 @@ jobs:
           PBP_ANDROID_VERSION_CODE: ${{ github.run_number }}
         run: bash scripts/build-android.sh
 
-      - name: Verify APK signing certificate
+      - name: Verify persistent APK signing certificate
+        if: github.event_name != 'pull_request'
         run: bash scripts/verify-android-signing.sh
 
       - name: Upload installable APK
