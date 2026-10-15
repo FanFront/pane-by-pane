@@ -10,6 +10,7 @@ import { MatchRule, MingleRule, MismatchRule, PairShapeRule, PolyominoRule, Shap
 import { BrickyRule, LoopyRule, PalisadeRule, WatchtowerRule } from './topo.ts';
 import { AreaNumberRule, RangeRule, SizeSeparationRule } from './size.ts';
 import { FixedWallsRule } from './walls.ts';
+import { FenceShapeRule, CompassRule } from './foreign.ts';
 
 export type { Deduction, Rule } from './rule.ts';
 
@@ -51,6 +52,10 @@ export function buildRules(puzzle: Puzzle, grid: Grid): Rule[] {
   if (match && mismatch) throw new Error('match and mismatch contradict each other');
   if (match) rules.push(new MatchRule());
   if (mismatch) rules.push(new MismatchRule(ofType(puzzle.clues, 'boxy').length > 0));
+  const fences = ofType(puzzle.clues, 'fenceShape');
+  if (fences.length) rules.push(new FenceShapeRule(fences));
+  const compasses = ofType(puzzle.clues, 'compass');
+  if (compasses.length) rules.push(new CompassRule(compasses));
   const pal = ofType(puzzle.clues, 'palisade');
   if (pal.length) rules.push(new PalisadeRule(pal));
   if (ofType(puzzle.clues, 'bricky').length) rules.push(new BrickyRule());
