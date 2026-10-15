@@ -22,6 +22,21 @@ The APK is created using GitHub's Java 21 and Android SDK runners. Its web
 assets, puzzle generator, solver, touch input, hints, undo/redo and browser
 localStorage-based autosaves are the same features as the original web game.
 
+### Android controls and Back navigation
+
+On narrow Android screens, the puzzle actions stay in a bottom toolbar, above
+the device's gesture-navigation inset. Undo and Redo move from the header into
+this bar; the desktop controls remain unchanged.
+
+The Android build includes the Capacitor App plugin. The system **Back** key:
+- goes from a chapter's level grid to the chapter list;
+- closes the active level/rules/answer/warning dialog;
+- dismisses the introductory rules tip if it is visible;
+- otherwise minimizes the app without losing the current window.
+
+In a web browser, Escape closes ordinary dialogs and goes up one level inside
+the level browser; no Android plugin is needed for the website.
+
 **Important:** GitHub-hosted debug builds may be signed with different
 temporary debug keys between workflow runs. If Android refuses to install an
 update because the signatures differ, uninstall the older APK first; this
