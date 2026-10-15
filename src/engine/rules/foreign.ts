@@ -16,7 +16,8 @@ export function fencePatternKey(sides: number): string {
 /** Original Glimmith fence clues compare the cross up to rotation/reflection. */
 export class FenceShapeRule implements Rule {
   readonly kind = 'fenceShape';
-  constructor(private readonly clues: FenceShapeClue[]) {}
+  private readonly clues: FenceShapeClue[];
+  constructor(clues: FenceShapeClue[]) { this.clues = clues; }
   init(_state: State): boolean { return true; }
   propagate(_state: State): boolean { return true; }
 
@@ -39,7 +40,8 @@ export class FenceShapeRule implements Rule {
 /** Original Glimmith compass counts cells of its region anywhere on each side. */
 export class CompassRule implements Rule {
   readonly kind = 'compass';
-  constructor(private readonly clues: CompassClue[]) {}
+  private readonly clues: CompassClue[];
+  constructor(clues: CompassClue[]) { this.clues = clues; }
   init(_state: State): boolean { return true; }
   propagate(_state: State): boolean { return true; }
 
