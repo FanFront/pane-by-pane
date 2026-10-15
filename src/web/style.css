@@ -240,7 +240,8 @@ canvas#board {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-  max-width: 100%;
+  /* Board.layout sets both display dimensions to preserve aspect ratio.
+     A one-axis max-width squeeze would distort large puzzles. */
   /* drop-shadow follows the drawn window, holes and all: set into the wall, then glowing */
   filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45)) drop-shadow(0 14px 28px rgba(0, 0, 0, 0.3));
   transition: filter 1.2s ease;
