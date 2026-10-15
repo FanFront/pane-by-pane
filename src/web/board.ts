@@ -93,7 +93,8 @@ export class Board {
 
   // gesture state
   private pointerId = -1;
-  private downPos: [number, number] = [0, 0];
+  /** Touch slop is measured in visible screen pixels, not scaled board pixels. */
+  private downClientPos: [number, number] = [0, 0];
   private downHit: Hit | null = null;
   private moved = false;
   private changed = false;
@@ -213,7 +214,7 @@ export class Board {
     this.pointerId = e.pointerId;
     this.stage.setPointerCapture(e.pointerId);
     this.haptics.begin();
-    this.downPos = p;
+    this.downClientPos = [e.clientX, e.clientY];
     this.downHit = hit;
     this.moved = false;
     this.changed = false;
@@ -236,7 +237,7 @@ export class Board {
   private onMove(e: PointerEvent): void {
     if (!this.ps || e.pointerId !== this.pointerId) return;
     const p = this.pos(e);
-    if (!this.moved && Math.hypot(p[0] - this.downPos[0], p[1] - this.downPos[1]) > MOVE_SLOP) {
+    if (!this.moved && Math.hypot(e.clientX - this.downClientPos[0], e.clientY - this.downClientPos[1]) > MOVE_SLOP) {
       this.moved = true;
       this.cancelLongPress();
     }
