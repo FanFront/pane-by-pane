@@ -21,7 +21,11 @@ fi
 expected="$(keytool -exportcert -alias androiddebugkey -keystore "$KEYSTORE" -storepass android | sha256sum | awk '{print $1}')"
 actual="$("$APKSIGNER" verify --print-certs "$APK" | awk '/Signer #1 certificate SHA-256 digest:/ {print $NF; exit}')"
 if [[ -z "$actual" || "${expected,,}" != "${actual,,}" ]]; then
-  echo "::error::APK signature is different from the expected persistent debug key." >&2
+  # Certificate fingerprints are public and safe to report; never print the key.
+  echo "::error::APK certificate does not match the persistent debug keystore." >&2
+  echo "Expected certificate SHA-256: ${expected,,}" >&2
+  echo "APK certificate SHA-256: ${actual:-<not found>}" >&2
+  echo "Check that Gradle's debug signingConfig explicitly uses PBP_ANDROID_SIGNING_KEYSTORE." >&2
   exit 1
 fi
 
