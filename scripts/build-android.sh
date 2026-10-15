@@ -33,6 +33,22 @@ else
   npx --no-install cap sync android
 fi
 
+# Give published APKs a monotonically increasing versionCode (the workflow
+# run number), so Android treats each new release as an update. Local builds
+# without PBP_ANDROID_VERSION_CODE retain Capacitor's default version.
+if [[ -n "${PBP_ANDROID_VERSION_CODE:-}" ]]; then
+  if [[ ! "${PBP_ANDROID_VERSION_CODE}" =~ ^[1-9][0-9]*$ ]] || (( PBP_ANDROID_VERSION_CODE > 2100000000 )); then
+    echo "Invalid PBP_ANDROID_VERSION_CODE" >&2
+    exit 1
+  fi
+  APP_GRADLE="android/app/build.gradle"
+  [[ -f "$APP_GRADLE" ]] || { echo "Missing $APP_GRADLE" >&2; exit 1; }
+  sed -E -i "s/^([[:space:]]*)versionCode[[:space:]]+[0-9]+/\\1versionCode ${PBP_ANDROID_VERSION_CODE}/" "$APP_GRADLE"
+  sed -E -i "s/^([[:space:]]*)versionName[[:space:]]+[\"'][^\"']+[\"']/\\1versionName \"0.1.${PBP_ANDROID_VERSION_CODE}\"/" "$APP_GRADLE"
+  grep -Eq "^[[:space:]]*versionCode[[:space:]]+${PBP_ANDROID_VERSION_CODE}$" "$APP_GRADLE"
+  grep -Fq "versionName \"0.1.${PBP_ANDROID_VERSION_CODE}\"" "$APP_GRADLE"
+fi
+
 (
   cd android
   bash ./gradlew --no-daemon assembleDebug
