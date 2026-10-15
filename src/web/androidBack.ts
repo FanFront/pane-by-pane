@@ -21,12 +21,22 @@ export interface CapacitorBridge {
   isNativePlatform?(): boolean;
   Plugins?: { App?: NativeAppPlugin };
   registerPlugin?(name: 'App'): NativeAppPlugin;
+  // The native bridge exposes these even when @capacitor/core JS is not bundled.
+  addListener?(plugin: 'App', event: 'backButton', callback: () => void): unknown;
+  nativePromise?(plugin: 'App', method: 'minimizeApp', options: Record<string, never>): Promise<unknown>;
 }
 
 /** Return false in a browser, where Escape/cancel remains the native dialog control. */
 export function installAndroidBack(onBack: () => boolean, cap: CapacitorBridge | undefined): boolean {
   if (!cap?.isNativePlatform?.() || cap.getPlatform?.() !== 'android') return false;
-  const app = cap.Plugins?.App ?? cap.registerPlugin?.('App');
+  // The puzzle player intentionally has no runtime npm dependencies. In a
+  // Capacitor WebView the injected native bridge is available before Vite's JS;
+  // its legacy addListener/nativePromise work without importing @capacitor/core.
+  const app = cap.Plugins?.App ?? cap.registerPlugin?.('App') ??
+    (cap.addListener && cap.nativePromise ? {
+      addListener: async (event: 'backButton', callback: () => void) => cap.addListener!('App', event, callback),
+      minimizeApp: async () => { await cap.nativePromise!('App', 'minimizeApp', {}); },
+    } satisfies NativeAppPlugin : undefined);
   if (!app) return false;
 
   void app.addListener('backButton', () => {
