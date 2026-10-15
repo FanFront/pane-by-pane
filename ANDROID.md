@@ -37,6 +37,32 @@ The Android build includes the Capacitor App plugin. The system **Back** key:
 In a web browser, Escape closes ordinary dialogs and goes up one level inside
 the level browser; no Android plugin is needed for the website.
 
+## GitHub Releases
+
+After the persistent signing secret is configured, each successful **trusted main
+branch Android workflow run** automatically publishes its APK to the GitHub
+[Releases](https://github.com/FanFront/pane-by-pane/releases) page. The release
+is tagged `android-v0.1.<workflow-run-number>` and contains:
+
+- `pane-by-pane-android-v0.1.<run-number>.apk` — the installable package
+- `pane-by-pane-android-v0.1.<run-number>.apk.sha256` — its integrity checksum
+
+The APK's Android `versionCode` increases with the workflow run number, so
+subsequent downloads remain normal in-place upgrades when the signing key is
+the same. Debug builds are marked as GitHub **pre-releases** to distinguish
+them from app-store packages.
+
+PR builds do **not** publish a Release, and without
+`ANDROID_DEBUG_KEYSTORE_BASE64` a trusted build deliberately fails before
+publishing anything. You can also publish a new APK manually from
+**Actions → Build Android APK → Run workflow** on `main`.
+
+**Public-release warning:** The offline APK may contain third-party Glimmith
+puzzles whose redistribution rights have not been confirmed. GitHub Releases
+for a public repository are public. Confirm the right to redistribute those
+puzzles before sharing a release publicly; personal use is not a publishing
+license.
+
 ## Persistent debug signing for APK updates
 
 The GitHub Actions build uses **one persistent Android debug certificate** for
