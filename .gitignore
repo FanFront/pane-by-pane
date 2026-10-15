@@ -19,6 +19,11 @@ android/
 *.apk
 *.aab
 
+# Persistent Android signing credentials (never commit them)
+*.keystore
+*.jks
+*.keystore.base64.txt
+
 # Personal Glimmith level exports: never publish game-owned puzzle data
 public/presets/private.json
 private-exports/
