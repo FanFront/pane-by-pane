@@ -22,7 +22,7 @@ export class SolitudeRule extends RoseRule {
 export function symbolCells(clues: Clue[]): number[] {
   const out = new Set<number>();
   for (const c of clues) {
-    if (c.type === 'areaNumber' || c.type === 'polyomino' || c.type === 'palisade') out.add(c.cell);
+    if (c.type === 'areaNumber' || c.type === 'polyomino' || c.type === 'palisade' || c.type === 'fenceShape' || c.type === 'compass') out.add(c.cell);
     else if (c.type === 'rose') for (const s of c.symbols) out.add(s.cell);
   }
   return [...out].sort((a, b) => a - b);
