@@ -18,6 +18,18 @@ A stained-glass region-partition puzzle in the spirit of *The Artisan of Glimmit
 - **It ticks.** Every pane painted or erased plays a haptic tick, on Android through the Vibration API and on iOS through the one thing that still works there: a real, invisible `<input type=checkbox switch>` under the finger, moved around during a stroke so that WebKit's own drag-tracking haptic fires once per pane (see `src/web/haptics.ts`).
 - **Playable anywhere.** Touch and mouse gestures, undo/redo, autosave, shareable links, Korean, English or Simplified Chinese chosen from the browser and switchable in the header. The choice is saved locally.
 
+## Built-in Glimmith puzzles
+
+The Android and GitHub Pages builds pull the [Betaller Glimmith puzzle corpus](https://github.com/Betaller/SolverOfTheArtisanOfGlimmith/tree/main/puzzles) during packaging and convert its official JSON puzzle/answer pairs to playable offline levels. At the verified upstream revision, **1,229 of 1,231** official-zone puzzle files were usable; two have no matching answer. The bundled puzzles appear directly in the **Preset puzzles** menu, with no JSON import step and no internet connection needed while playing.
+
+To generate the same pack in a local checkout before `npm run dev` or `npm run build`:
+
+```sh
+bash scripts/pull-betaller-puzzles.sh
+```
+
+The generated `public/presets/betaller.json` is excluded from Git; it is re-created on the packaging machine. Source attribution and the current upstream revision are printed by the script. **Repository visibility is not a redistribution license:** the Betaller repository had no explicit license declaration at integration time, and puzzle artwork/data may retain original-game rights. Confirm permission before distributing a public APK or public hosted copy.
+
 ## Try it
 
 ```sh

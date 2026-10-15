@@ -25,6 +25,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - name: Pull upstream Glimmith puzzles for bundled offline play
+        run: bash scripts/pull-betaller-puzzles.sh
       - run: npm run build
       # creates the Pages site on first run, so no manual repository setting is needed
       - uses: actions/configure-pages@v5

@@ -8,6 +8,8 @@ on:
       - .github/workflows/android-apk.yml
       - capacitor.config.json
       - scripts/build-android.sh
+      - scripts/pull-betaller-puzzles.sh
+      - scripts/convert-betaller.mjs
       - ANDROID.md
       - src/**
       - public/presets/**
