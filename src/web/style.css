@@ -220,18 +220,56 @@ button.primary {
   opacity: 1;
 }
 
+/* Clip the zoomed board to the play area; rules and dock stay visible. */
+#board-viewport {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
 /* the window and, on iOS, the invisible switch that plays the haptics */
 #stage {
   position: relative;
   flex: none;
-  margin: auto;
-  max-width: 100%;
+  margin: 0;
+  max-width: none;
   line-height: 0;
+  transform-origin: center center;
+  will-change: transform;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
+
+/* Shown only when zoomed so normal gameplay remains uncluttered. */
+#board-reset {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 3;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, .55);
+  border-radius: 12px;
+  background: rgba(33, 29, 37, .88);
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, .25);
+  font-size: 25px;
+  line-height: 1;
+  touch-action: manipulation;
+}
+
+#board-reset[hidden] { display: none; }
 
 canvas#board {
   display: block;

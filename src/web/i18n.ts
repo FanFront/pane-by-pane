@@ -61,6 +61,8 @@ const ko = {
   redoTitle: '다시 실행 (⇧⌘Z)',
   langSwitch: 'EN',
   langSwitchTitle: 'Switch to English',
+  resetView: '화면 확대 초기화',
+  pinchHelp: '두 손가락으로 확대 · 축소 및 이동; 확대 중 ⤢로 초기화',
   // dialogs
   goalDesc: '규칙을 지켜 창의 모든 칸을 색유리로 채우거나, 모든 구역의 경계선을 그리세요.',
   close: '닫기',
@@ -289,6 +291,8 @@ const en: Messages = {
   redoTitle: 'Redo (⇧⌘Z)',
   langSwitch: '中文',
   langSwitchTitle: 'Switch to Simplified Chinese',
+  resetView: 'Reset board zoom',
+  pinchHelp: 'Use two fingers to zoom and pan the board; tap ⤢ to reset.',
   goalDesc: 'Following the rules, fill every cell of the window with coloured glass, or draw every border between regions.',
   close: 'Close',
   revealTitle: 'Show solution',
