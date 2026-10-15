@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: &android_paths
+    paths:
       - .github/workflows/android-apk.yml
       - capacitor.config.json
       - scripts/build-android.sh
@@ -19,7 +19,19 @@ on:
       - vite.config.ts
   pull_request:
     branches: [main]
-    paths: *android_paths
+    paths:
+      - .github/workflows/android-apk.yml
+      - capacitor.config.json
+      - scripts/build-android.sh
+      - scripts/pull-betaller-puzzles.sh
+      - scripts/convert-betaller.mjs
+      - ANDROID.md
+      - src/**
+      - public/presets/**
+      - index.html
+      - package.json
+      - package-lock.json
+      - vite.config.ts
 
 permissions:
   contents: read
