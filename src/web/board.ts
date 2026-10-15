@@ -4,6 +4,10 @@ import type { Puzzle } from '../engine/types.ts';
 import type { Hint, Mistake } from './analysis.ts';
 import { Haptics } from './haptics.ts';
 import { pointOnBoard, sizeBoard } from './boardGeometry.ts';
+import {
+  clampBoardView, defaultBoardView, movePinch, startPinch,
+  type BoardView, type PinchStart, type ScreenPoint,
+} from './boardViewport.ts';
 import { HUES, NONE, PlayerState, WALL, huePool } from './model.ts';
 
 /** colour of borders drawn by the player: a graphite sketch line, unlike the dark lead of the window */
@@ -54,8 +58,11 @@ export class Board {
   readonly canvas: HTMLCanvasElement;
   /** wraps the canvas; receives the gestures (on iOS a switch on top of the canvas gets the touches) */
   private stage: HTMLElement;
+  /** Clipped play area between the rule strip and the bottom toolbar. */
+  private viewport: HTMLElement;
   /** the stone wall around the window (#board-wrap) */
   private wrap: HTMLElement;
+  private resetViewButton: HTMLButtonElement;
   private haptics: Haptics;
   private ctx: CanvasRenderingContext2D;
   puzzle: Puzzle | null = null;
@@ -91,6 +98,13 @@ export class Board {
   private logicalHeight = 0;
   private cb: BoardCallbacks;
 
+  // Camera state: stage transform only; painting always uses logical canvas coordinates.
+  private view: BoardView = defaultBoardView();
+  private touchPoints = new Map<number, ScreenPoint>();
+  private pinch: PinchStart | null = null;
+  /** Prevent the remaining finger from painting when a pinch ends. */
+  private blockPainting = false;
+
   // gesture state
   private pointerId = -1;
   /** Touch slop is measured in visible screen pixels, not scaled board pixels. */
@@ -110,21 +124,26 @@ export class Board {
   constructor(canvas: HTMLCanvasElement, cb: BoardCallbacks) {
     this.canvas = canvas;
     this.stage = canvas.parentElement!;
-    this.wrap = this.stage.parentElement!;
+    this.viewport = this.stage.parentElement!;
+    this.wrap = this.viewport.parentElement!;
+    this.resetViewButton = this.viewport.querySelector<HTMLButtonElement>('#board-reset')!;
     this.ctx = canvas.getContext('2d')!;
     this.cb = cb;
     this.haptics = new Haptics(this.stage, canvas);
-    const stage = this.stage;
-    stage.addEventListener('pointerdown', (e) => this.onDown(e));
-    stage.addEventListener('pointermove', (e) => this.onMove(e));
-    stage.addEventListener('pointerup', (e) => this.onUp(e));
-    stage.addEventListener('pointercancel', (e) => this.onUp(e));
-    stage.addEventListener('contextmenu', (e) => e.preventDefault());
+    // Listening and capturing on the viewport lets a second finger land in
+    // the play-area margin, and preserves the gesture outside the stage.
+    const viewport = this.viewport;
+    viewport.addEventListener('pointerdown', (e) => this.onDown(e));
+    viewport.addEventListener('pointermove', (e) => this.onMove(e));
+    viewport.addEventListener('pointerup', (e) => this.onUp(e));
+    viewport.addEventListener('pointercancel', (e) => this.onCancel(e));
+    viewport.addEventListener('contextmenu', (e) => e.preventDefault());
+    this.resetViewButton.addEventListener('click', () => this.resetView());
     // Block the browser's own touch gestures on the board (pinch zoom, double-tap
     // zoom, long-press magnifier/selection); pointer events still fire. With the
     // haptic switch in place the touches must keep their default handling (that
     // is what ticks), and CSS touch-action / user-select do the blocking.
-    if (!this.haptics.overlay) for (const t of ['touchstart', 'touchmove', 'touchend'] as const) stage.addEventListener(t, (e) => e.preventDefault(), { passive: false });
+    if (!this.haptics.overlay) for (const t of ['touchstart', 'touchmove', 'touchend'] as const) viewport.addEventListener(t, (e) => e.preventDefault(), { passive: false });
     window.addEventListener('resize', () => this.layout());
   }
 
@@ -137,6 +156,13 @@ export class Board {
     this.errors = new Set();
     this.errorEdges = new Set();
     this.brush = 0;
+    this.cancelLongPress();
+    this.touchPoints.clear();
+    this.pinch = null;
+    this.blockPainting = false;
+    this.pointerId = -1;
+    this.haptics.end(false);
+    this.resetView();
     this.setComplete(false);
     this.lit = 0;
     this.layout();
@@ -146,19 +172,12 @@ export class Board {
 
   layout(): void {
     if (!this.grid) return;
-    const wrap = this.wrap;
-    // fit the content box of the stage (its padding excluded); the goal strip
-    // above the window takes its share of the height
-    const cs = getComputedStyle(wrap);
-    const strip = wrap.querySelector<HTMLElement>('.goal-area');
-    const stripH = strip && !strip.hidden ? strip.offsetHeight + 8 : 0;
-    // Reserve space for the always-visible puzzle controls at the foot of the board.
-    // Without this, the canvas can sit underneath the dock on short Android screens.
-    const dock = wrap.querySelector<HTMLElement>('#info');
-    const dockH = dock && !dock.hidden ? dock.offsetHeight + 12 : 0;
-    const innerW = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    const innerH = (wrap.clientHeight || 9999) - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - stripH - dockH;
-    const size = sizeBoard(this.grid.w, this.grid.h, innerW, innerH, this.pad);
+    // The flex viewport already excludes the rule strip and toolbar. Query
+    // its actual inner dimensions instead of estimating the occupied space.
+    const size = sizeBoard(
+      this.grid.w, this.grid.h,
+      this.viewport.clientWidth, this.viewport.clientHeight, this.pad,
+    );
     this.cell = size.cell;
     this.logicalWidth = size.logicalWidth;
     this.logicalHeight = size.logicalHeight;
@@ -170,7 +189,52 @@ export class Board {
     this.canvas.width = Math.round(size.logicalWidth * dpr);
     this.canvas.height = Math.round(size.logicalHeight * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.applyView();
     this.draw();
+  }
+
+  /** Show the entire board again without changing the puzzle's marks. */
+  private resetView(): void {
+    this.view = defaultBoardView();
+    this.applyView();
+  }
+
+  private applyView(): void {
+    this.view = clampBoardView(
+      this.view,
+      this.stage.clientWidth, this.stage.clientHeight,
+      this.viewport.clientWidth, this.viewport.clientHeight,
+    );
+    const { zoom, panX, panY } = this.view;
+    this.stage.style.transform = zoom === 1 ? '' : `translate(${panX}px, ${panY}px) scale(${zoom})`;
+    this.resetViewButton.hidden = zoom === 1;
+  }
+
+  private beginPinch(): void {
+    // A finger already painting is finalized without a new tap or wall.
+    this.stopPainting();
+    this.lastErase = null;
+    this.blockPainting = true;
+    const [a, b] = [...this.touchPoints.values()];
+    const rect = this.stage.getBoundingClientRect();
+    // getBoundingClientRect includes the existing CSS translation; recover the
+    // center of the *untransformed* stage so a new pinch cannot jump.
+    const stageCenter: ScreenPoint = [
+      rect.left + rect.width / 2 - this.view.panX,
+      rect.top + rect.height / 2 - this.view.panY,
+    ];
+    this.pinch = startPinch(a, b, this.view, stageCenter);
+  }
+
+  private updatePinch(): void {
+    if (!this.pinch || this.touchPoints.size < 2) return;
+    const [a, b] = [...this.touchPoints.values()];
+    this.view = movePinch(
+      this.pinch, a, b,
+      this.stage.clientWidth, this.stage.clientHeight,
+      this.viewport.clientWidth, this.viewport.clientHeight,
+    );
+    this.applyView();
   }
 
   private hit(px: number, py: number): Hit | null {
@@ -206,13 +270,25 @@ export class Board {
   // -- gestures ----------------------------------------------------------------
 
   private onDown(e: PointerEvent): void {
-    if (!this.ps || this.reveal || this.pointerId !== -1) return;
+    if (!this.ps || this.reveal || (e.target as Element).closest('#board-reset')) return;
+    if (e.pointerType === 'touch') {
+      // A third finger must not replace either of the two tracked fingers.
+      if (this.touchPoints.size >= 2) return;
+      this.touchPoints.set(e.pointerId, [e.clientX, e.clientY]);
+      this.viewport.setPointerCapture(e.pointerId);
+      if (this.touchPoints.size === 2) {
+        e.preventDefault();
+        this.beginPinch();
+        return;
+      }
+    }
+    if (this.blockPainting || this.pointerId !== -1) return;
     const p = this.pos(e);
     const hit = this.hit(...p);
     if (!hit) return;
     e.preventDefault();
     this.pointerId = e.pointerId;
-    this.stage.setPointerCapture(e.pointerId);
+    if (!this.viewport.hasPointerCapture(e.pointerId)) this.viewport.setPointerCapture(e.pointerId);
     this.haptics.begin();
     this.downClientPos = [e.clientX, e.clientY];
     this.downHit = hit;
@@ -235,7 +311,15 @@ export class Board {
   }
 
   private onMove(e: PointerEvent): void {
-    if (!this.ps || e.pointerId !== this.pointerId) return;
+    if (this.touchPoints.has(e.pointerId)) {
+      this.touchPoints.set(e.pointerId, [e.clientX, e.clientY]);
+      if (this.pinch) {
+        e.preventDefault();
+        this.updatePinch();
+        return;
+      }
+    }
+    if (this.blockPainting || !this.ps || e.pointerId !== this.pointerId) return;
     const p = this.pos(e);
     if (!this.moved && Math.hypot(e.clientX - this.downClientPos[0], e.clientY - this.downClientPos[1]) > MOVE_SLOP) {
       this.moved = true;
@@ -279,10 +363,24 @@ export class Board {
   }
 
   private onUp(e: PointerEvent): void {
+    this.releasePointer(e, true);
+  }
+
+  private onCancel(e: PointerEvent): void {
+    this.releasePointer(e, false);
+  }
+
+  private releasePointer(e: PointerEvent, allowTap: boolean): void {
+    this.touchPoints.delete(e.pointerId);
+    if (this.viewport.hasPointerCapture(e.pointerId)) this.viewport.releasePointerCapture(e.pointerId);
+    if (this.blockPainting) {
+      if (this.touchPoints.size < 2) this.pinch = null;
+      if (this.touchPoints.size === 0) this.blockPainting = false;
+      return; // No painting when one finger remains after a pinch.
+    }
     if (e.pointerId !== this.pointerId) return;
     this.pointerId = -1;
     this.cancelLongPress();
-    if (this.stage.hasPointerCapture(e.pointerId)) this.stage.releasePointerCapture(e.pointerId);
     if (this.areaCells) {
       this.areaCells = null;
       this.cb.onArea(null);
@@ -290,8 +388,11 @@ export class Board {
     }
     const ps = this.ps;
     const hit = this.downHit;
-    if (!ps || !hit) return;
-    const tap = !this.moved && this.gesture === 'none';
+    if (!ps || !hit) {
+      this.haptics.end(false);
+      return;
+    }
+    const tap = allowTap && !this.moved && this.gesture === 'none';
     const now = performance.now();
     const doubleTap = tap && hit.zone === 'inner' && this.lastErase !== null && this.lastErase.cell === hit.cell && now - this.lastErase.at < DOUBLE_TAP_MS;
     this.lastErase = null;
@@ -312,8 +413,25 @@ export class Board {
     } else if (tap && !this.eraser) {
       this.change(() => ps.newRegion(hit.cell));
     }
-    this.haptics.end(this.changed);
+    this.haptics.end(allowTap && this.changed);
     if (this.changed) this.cb.onChange();
+    this.changed = false;
+    this.downHit = null;
+    this.draw();
+  }
+
+  /** Finish a pending paint stroke when a second finger joins. */
+  private stopPainting(): void {
+    this.cancelLongPress();
+    if (this.areaCells) {
+      this.areaCells = null;
+      this.cb.onArea(null);
+    }
+    this.pointerId = -1;
+    this.downHit = null;
+    this.haptics.end(false);
+    if (this.changed) this.cb.onChange();
+    this.changed = false;
     this.draw();
   }
 
