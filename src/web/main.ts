@@ -221,6 +221,7 @@ interface PresetEntry {
   level: PresetLevel;
 }
 let bundledPack: PresetPack | null = null;
+let privatePack: PresetPack | null = null;
 let personalPack: PresetPack | null = null;
 let presetEntries: PresetEntry[] = [];
 const presetSelect = $<HTMLSelectElement>('preset-select');
@@ -250,6 +251,7 @@ function refreshPresetUi(preferred?: string): void {
 
   const packs: { origin: string; pack: PresetPack }[] = [];
   if (bundledPack) packs.push({ origin: 'bundled', pack: bundledPack });
+  if (privatePack) packs.push({ origin: 'private', pack: privatePack });
   if (personalPack) packs.push({ origin: 'personal', pack: personalPack });
   presetEntries = packs.flatMap(({ origin, pack }) =>
     pack.levels.map((level) => ({
@@ -302,7 +304,7 @@ presetFile.addEventListener('change', async () => {
   if (!file) return;
   try {
     if (file.size > 20 * 1024 * 1024) throw new Error('JSON file exceeds 20 MiB');
-    const pack = parsePresetPack(JSON.parse(await file.text()), file.name.replace(/\\.json$/i, ''));
+    const pack = parsePresetPack(JSON.parse(await file.text()), file.name.endsWith('.json') ? file.name.slice(0, -5) : file.name);
     await savePersonalPack(pack);
     personalPack = pack;
     refreshPresetUi(pack.levels.length ? `personal:${pack.levels[0].id}` : undefined);
@@ -325,6 +327,13 @@ async function initPresets(): Promise<void> {
     bundledPack = parsePresetPack(await response.json(), '内置关卡');
   } catch (err) {
     presetStatus.textContent = `Bundled presets unavailable: ${err instanceof Error ? err.message : String(err)}`;
+  }
+  // Optional local-only bundled data. This file is gitignored and never published.
+  try {
+    const privateResponse = await fetch('./presets/private.json');
+    if (privateResponse.ok) privatePack = parsePresetPack(await privateResponse.json(), '本地私有预设');
+  } catch (err) {
+    presetStatus.textContent = `Private presets unavailable: ${err instanceof Error ? err.message : String(err)}`;
   }
   try {
     const imported = await readPersonalPack();
