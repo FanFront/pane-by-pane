@@ -36,6 +36,12 @@ function validate(p: Puzzle, g: Grid): void {
       case 'rose':
         for (const s of c.symbols) if (!cellOk(s.cell)) throw new Error('bad rose clue');
         break;
+      case 'fenceShape':
+        if (!cellOk(c.cell) || !Number.isInteger(c.sides) || c.sides < 0 || c.sides > 15) throw new Error('bad fenceShape clue');
+        break;
+      case 'compass':
+        if (!cellOk(c.cell) || ![c.up, c.down, c.left, c.right].every((n) => Number.isInteger(n) && n >= -1 && n <= g.cells)) throw new Error('bad compass clue');
+        break;
       case 'palisade':
         if (!cellOk(c.cell) || !Number.isInteger(c.sides) || c.sides < 0 || c.sides > 15) throw new Error('bad palisade clue');
         break;
