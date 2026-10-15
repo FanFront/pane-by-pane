@@ -221,6 +221,7 @@ interface PresetEntry {
   level: PresetLevel;
 }
 let bundledPack: PresetPack | null = null;
+let betallerPack: PresetPack | null = null;
 let privatePack: PresetPack | null = null;
 let personalPack: PresetPack | null = null;
 let presetEntries: PresetEntry[] = [];
@@ -239,9 +240,9 @@ function refreshPresetUi(preferred?: string): void {
   const selection = preferred ?? presetSelect.value;
   $('preset-heading').textContent = presetText('预设关卡', 'Preset puzzles', '사전 설정 퍼즐');
   $('preset-intro').textContent = presetText(
-    '可游玩内置示例，或导入自己整理的关卡 JSON；数据仅存储在本机。',
-    'Play bundled examples or import your own JSON pack; imported data stays on this device.',
-    '내장 예제를 플레이하거나 자신의 JSON 팩을 가져오세요. 가져온 데이터는 기기에만 저장됩니다.',
+    '内置 Glimmith 关卡与示例，可离线游玩；也可以导入自己的 JSON 关卡包。',
+    'Play offline Glimmith puzzles and examples, or import your own JSON pack.',
+    '오프라인 글리미스 퍼즐과 예제를 플레이하거나 JSON 팩을 가져오세요.',
   );
   $('preset-select-label').textContent = presetText('选择关卡', 'Choose a puzzle', '퍼즐 선택');
   $('preset-import-label').textContent = presetText('导入本地 JSON 关卡包', 'Import a local JSON pack', '로컬 JSON 퍼즐 팩 가져오기');
@@ -250,6 +251,7 @@ function refreshPresetUi(preferred?: string): void {
   presetNext.textContent = presetText('下一关', 'Next', '다음');
 
   const packs: { origin: string; pack: PresetPack }[] = [];
+  if (betallerPack) packs.push({ origin: 'betaller', pack: betallerPack });
   if (bundledPack) packs.push({ origin: 'bundled', pack: bundledPack });
   if (privatePack) packs.push({ origin: 'private', pack: privatePack });
   if (personalPack) packs.push({ origin: 'personal', pack: personalPack });
@@ -328,6 +330,16 @@ async function initPresets(): Promise<void> {
   } catch (err) {
     presetStatus.textContent = `Bundled presets unavailable: ${err instanceof Error ? err.message : String(err)}`;
   }
+  // Build-time generated puzzle bundle (fetched from Betaller, available offline in APK).
+  // Missing in a source-only checkout until scripts/pull-betaller-puzzles.sh runs.
+  try {
+    const response = await fetch('./presets/betaller.json');
+    if (response.ok) {
+      betallerPack = parsePresetPack(await response.json(), 'Glimmith');
+    }
+  } catch (err) {
+    presetStatus.textContent = `Glimmith presets unavailable: ${err instanceof Error ? err.message : String(err)}`;
+  }
   // Optional local-only bundled data. This file is gitignored and never published.
   try {
     const privateResponse = await fetch('./presets/private.json');
@@ -342,6 +354,13 @@ async function initPresets(): Promise<void> {
     presetStatus.textContent = `Local presets unavailable: ${err instanceof Error ? err.message : String(err)}`;
   }
   refreshPresetUi();
+  if (betallerPack?.levels.length) {
+    presetStatus.textContent = presetText(
+      `已内置 ${betallerPack.levels.length} 道 Glimmith 关卡，可离线游玩`,
+      `${betallerPack.levels.length} Glimmith puzzles ready offline`,
+      `글리미스 퍼즐 ${betallerPack.levels.length}개를 오프라인으로 플레이할 수 있습니다`,
+    );
+  }
 }
 
 // -- puzzle screen ----------------------------------------------------------------
