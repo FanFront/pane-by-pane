@@ -19,13 +19,11 @@ if [[ -z "$APKSIGNER" ]]; then
 fi
 
 expected="$(keytool -exportcert -alias androiddebugkey -keystore "$KEYSTORE" -storepass android | sha256sum | awk '{print $1}')"
-# Modern apksigner can report a version-range signer such as
-# "Signer (minSdkVersion=24, maxSdkVersion=32) certificate SHA-256 digest: ..."
-# instead of only "Signer #1 certificate SHA-256 digest: ...".
-# Validate every reported signer certificate; don't confuse it with the
-# separate "Signer ... public key SHA-256 digest" field.
+# Build-tools versions use "Signer #1", "Signer (minSdkVersion=...)",
+# or "V2 Signer:" prefixes. Match the certificate digest field regardless of
+# prefix, but never mistake the separate "public key SHA-256 digest" for it.
 cert_report="$("$APKSIGNER" verify --verbose --print-certs "$APK" 2>&1)"
-mapfile -t actuals < <(printf '%s\n' "$cert_report" | awk '/^Signer .* certificate SHA-256 digest:/ {print tolower($NF)}')
+mapfile -t actuals < <(printf '%s\n' "$cert_report" | awk '/(^|[[:space:]])certificate SHA-256 digest:/ {print tolower($NF)}')
 
 if (( ${#actuals[@]} == 0 )); then
   echo "::error::apksigner did not report any certificate SHA-256 digest." >&2
