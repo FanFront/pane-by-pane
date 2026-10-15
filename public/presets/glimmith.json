@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "name": "示例预设（非官方）",
+  "levels": [
+    {
+      "id": "sample-001",
+      "title": "入门：三列玻璃",
+      "chapter": "示例",
+      "source": "handcrafted demo – not from Glimmith",
+      "stars": 1,
+      "difficulty": 0,
+      "puzzle": {
+        "width": 3,
+        "height": 3,
+        "clues": [
+          {
+            "type": "areaNumber",
+            "cell": 0,
+            "value": 3
+          },
+          {
+            "type": "areaNumber",
+            "cell": 1,
+            "value": 3
+          },
+          {
+            "type": "areaNumber",
+            "cell": 2,
+            "value": 3
+          }
+        ]
+      },
+      "solution": [
+        0,
+        1,
+        2,
+        0,
+        1,
+        2,
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "id": "sample-002",
+      "title": "入门：三行玻璃",
+      "chapter": "示例",
+      "source": "handcrafted demo – not from Glimmith",
+      "stars": 1,
+      "difficulty": 0,
+      "puzzle": {
+        "width": 4,
+        "height": 3,
+        "clues": [
+          {
+            "type": "areaNumber",
+            "cell": 0,
+            "value": 4
+          },
+          {
+            "type": "areaNumber",
+            "cell": 4,
+            "value": 4
+          },
+          {
+            "type": "areaNumber",
+            "cell": 8,
+            "value": 4
+          }
+        ]
+      },
+      "solution": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        2
+      ]
+    }
+  ]
+}
