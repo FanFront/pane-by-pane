@@ -94,3 +94,36 @@ npm run build
 ```
 
 如提示题解不符合规则，请检查：是否缺失全局规则、原版某个符号是否尚未支持、SV1 是否覆盖了所有格子及边线索。转换器设计为**遇到不确定的规则不进行降级猜测**，以免误导游戏体验。
+
+
+## 四、直接转换 Betaller 求解器的 JSON 题库（推荐）
+
+[Betaller/SolverOfTheArtisanOfGlimmith](https://github.com/Betaller/SolverOfTheArtisanOfGlimmith/tree/main/puzzles) 已整理了许多官方谜题及对应的 `-answer` 答案文件，比从 SV1 文本逐关导出方便。本项目新增了对其 **JSON v1.0 数据格式**的专用转换器，按真实规则映射数字、拼块、形状池、玫瑰窗、双生/异生、面积差、不等式、顶点望塔、全局规则、可旋转/翻转围栏，以及罗盘。
+
+**请不要直接复制题库进公开仓库。** 截至接入时，上游 GitHub 仓库未标注再分发许可证；其 JSON 中的官方关卡内容也属于第三方游戏数据。本功能供你在自己电脑上转换，保存在本地，再导入个人离线 Android 游戏。
+
+在本机克隆上游仓库（可放在 pane-by-pane 之外）：
+
+```sh
+git clone --depth 1 https://github.com/Betaller/SolverOfTheArtisanOfGlimmith.git ../SolverOfTheArtisanOfGlimmith
+```
+
+在 pane-by-pane 项目目录运行（Node.js 22.18+）：
+
+```sh
+node scripts/convert-betaller.mjs \
+  --root ../SolverOfTheArtisanOfGlimmith \
+  --output ./public/presets/private.json
+```
+
+这会匹配上游的 `puzzles/official/Zone1/...`、`Zone2/...`、`Zone3/...` 和相应 `Zone1-answer/...`、`Zone2-answer/...`、`Zone3-answer/...` 文件，逐关执行答案规则校验。还会生成：
+
+```
+public/presets/private.json.report.json
+```
+
+报告包含 `total`、`converted`、`skipped` 和每个跳过文件的具体原因。**不要把没有经过报告验证的题目算作已支持**。上游的 A/B/C 实验文件没有匹配的官方答案，不会默认导入；需要另行处理。
+
+`private.json` 已列入 `.gitignore`，可以用于**本机 APK 构建**，也可以将其从电脑复制到 Android 手机上，通过「导入本地 JSON 关卡包」选择，无须重新编译。使用 GitHub Actions 构建的公开 APK 不会自动包含本地私有题库。
+
+注意：新增加的围栏和罗盘可**正确判定玩家答案**，但当前提示系统仍优先覆盖旧版规则；对含这两类线索的难题，不能保证提示算法能推出有效下一步。其它未知或不支持的字段将明确跳过，不会静默忽略。
