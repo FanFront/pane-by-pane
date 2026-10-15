@@ -1,6 +1,8 @@
 name: Verify pull request
 
 on:
+  push:
+    branches: [feature/local-preset-levels]
   pull_request:
     branches: [main]
 
