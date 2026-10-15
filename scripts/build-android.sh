@@ -33,10 +33,9 @@ else
   npx --no-install cap sync android
 fi
 
-# This project regenerates android/ from scratch, so configure the native
-# BridgeActivity on every build. Android 15/16 enforce edge-to-edge system
-# bars; Capacitor SystemBars then forwards accurate safe-area insets to CSS
-# (or uses native WebView padding on pre-Chromium-140 WebViews).
+# The generated Android project does not live in git; customize it at
+# build time. Hide ONLY the phone status bar, not Android navigation or
+# the app's own gameplay toolbar. Reapply on focus after system UI changes.
 MAIN_ACTIVITY="android/app/src/main/java/dev/fanfront/panebypane/MainActivity.java"
 if [[ ! -f "$MAIN_ACTIVITY" ]]; then
   echo "Missing generated Android MainActivity: $MAIN_ACTIVITY" >&2
@@ -47,13 +46,31 @@ package dev.fanfront.panebypane;
 
 import android.os.Bundle;
 import androidx.activity.EdgeToEdge;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    private void hideStatusBar() {
+        WindowInsetsControllerCompat controller =
+            WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        controller.setSystemBarsBehavior(
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        controller.hide(WindowInsetsCompat.Type.statusBars());
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
+        hideStatusBar();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) hideStatusBar();
     }
 }
 JAVA

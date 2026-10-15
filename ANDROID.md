@@ -28,15 +28,18 @@ On narrow Android screens, the puzzle actions stay in a bottom toolbar, above
 the device's gesture-navigation inset. Undo and Redo move from the header into
 this bar; the desktop controls remain unchanged.
 
-The status bar remains visible without covering the header or puzzle. Android
-15/16 enforce edge-to-edge windows; the generated Activity enables
-`EdgeToEdge`, and Capacitor's built-in `SystemBars` uses
-`insetsHandling: native`. On modern Android WebViews, CSS
-`env(safe-area-inset-*)` keeps the sticky header below the status bar and
-the fixed toolbar above the bottom gesture area. On WebViews older than
-Chromium 140, Capacitor applies native WebView insets instead, so the same
-CSS does not double-pad. These insets adapt when rotating the device. The
-browser UI continues to use its own safe-area insets.
+### Android status bar
+
+The phone's **top Android status bar is hidden** during gameplay while the
+bottom system navigation bar and the game's own toolbar remain visible.
+The generated native `MainActivity` uses
+`WindowInsetsControllerCompat.hide(WindowInsetsCompat.Type.statusBars())`,
+reapplying it when the app regains focus. Swiping down can reveal the status
+bar briefly, after which Android hides it again.
+
+The game's header positioning and CSS are unchanged. Capacitor's
+`SystemBars` native insets handling remains enabled for proper bottom
+gesture-navigation padding on different Android WebView versions.
 
 The Android build includes the Capacitor App plugin. The system **Back** key:
 - goes from a chapter's level grid to the chapter list;
