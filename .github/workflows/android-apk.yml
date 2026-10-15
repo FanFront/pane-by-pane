@@ -9,7 +9,8 @@ on:
       - capacitor.config.json
       - scripts/build-android.sh
       - ANDROID.md
-      - src/web/**
+      - src/**
+      - public/presets/**
       - index.html
       - package.json
       - package-lock.json

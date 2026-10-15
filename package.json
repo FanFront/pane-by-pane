@@ -9,7 +9,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node --test \"tests/**/*.test.ts\"",
+    "test": "node --test \"tests/**/*.test.ts\" \"tests/**/*.test.mjs\"",
     "pbp": "node src/cli.ts",
     "dev": "vite",
     "build": "vite build",
