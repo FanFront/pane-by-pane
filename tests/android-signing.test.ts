@@ -57,6 +57,18 @@ test('accepts modern apksigner minSdkVersion signer format, not public key diges
   assert.equal(result.status, 0, result.stderr);
 });
 
+test('accepts Android build-tools V2 Signer certificate labels', () => {
+  const lines = [
+    'Verifies',
+    'Verified using v2 scheme (APK Signature Scheme v2): true',
+    'Number of signers: 1',
+    'V2 Signer: certificate SHA-256 digest: ' + fingerprint,
+    'V2 Signer: public key SHA-256 digest: ' + '0'.repeat(64),
+  ];
+  const result = checkSignature(lines.join('\n'));
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test('rejects an APK signed with another certificate', () => {
   const result = checkSignature('Signer #1 certificate SHA-256 digest: ' + '0'.repeat(64));
   assert.notEqual(result.status, 0);
