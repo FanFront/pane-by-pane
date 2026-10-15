@@ -8,6 +8,8 @@ on:
       - .github/workflows/android-apk.yml
       - capacitor.config.json
       - scripts/build-android.sh
+      - scripts/verify-android-signing.sh
+      - scripts/create-android-debug-keystore.sh
       - scripts/pull-betaller-puzzles.sh
       - scripts/convert-betaller.mjs
       - ANDROID.md
@@ -23,6 +25,8 @@ on:
       - .github/workflows/android-apk.yml
       - capacitor.config.json
       - scripts/build-android.sh
+      - scripts/verify-android-signing.sh
+      - scripts/create-android-debug-keystore.sh
       - scripts/pull-betaller-puzzles.sh
       - scripts/convert-betaller.mjs
       - ANDROID.md
@@ -59,10 +63,33 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
 
+      # Never expose the long-lived signing key to pull-request code. PRs are
+      # still built using an ephemeral debug key for verification only.
+      - name: Install persistent debug signing key
+        if: github.event_name != 'pull_request'
+        env:
+          ANDROID_DEBUG_KEYSTORE_BASE64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${ANDROID_DEBUG_KEYSTORE_BASE64}" ]]; then
+            echo "::error::Set repository Actions secret ANDROID_DEBUG_KEYSTORE_BASE64 before producing an installable APK. See ANDROID.md."
+            exit 1
+          fi
+          install -d -m 700 "$HOME/.android"
+          printf '%s' "$ANDROID_DEBUG_KEYSTORE_BASE64" | base64 --decode > "$HOME/.android/debug.keystore"
+          chmod 600 "$HOME/.android/debug.keystore"
+          keytool -list -keystore "$HOME/.android/debug.keystore" \
+            -storepass android -alias androiddebugkey >/dev/null
+          echo "Persistent signing key installed (certificate fingerprint is checked after APK build)."
+
       - name: Build and test web game, package Android APK
         run: bash scripts/build-android.sh
 
+      - name: Verify APK signing certificate
+        run: bash scripts/verify-android-signing.sh
+
       - name: Upload installable APK
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: pane-by-pane-android-debug
