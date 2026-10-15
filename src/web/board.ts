@@ -3,6 +3,7 @@ import { parseKey, type ShapeKey } from '../engine/shape.ts';
 import type { Puzzle } from '../engine/types.ts';
 import type { Hint, Mistake } from './analysis.ts';
 import { Haptics } from './haptics.ts';
+import { pointOnBoard, sizeBoard } from './boardGeometry.ts';
 import { HUES, NONE, PlayerState, WALL, huePool } from './model.ts';
 
 /** colour of borders drawn by the player: a graphite sketch line, unlike the dark lead of the window */
@@ -85,6 +86,9 @@ export class Board {
   private anim: number | null = null;
   private cell = 64;
   private pad = 12;
+  /** Drawing dimensions before any mobile display scaling. */
+  private logicalWidth = 0;
+  private logicalHeight = 0;
   private cb: BoardCallbacks;
 
   // gesture state
@@ -153,15 +157,17 @@ export class Board {
     const dockH = dock && !dock.hidden ? dock.offsetHeight + 12 : 0;
     const innerW = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
     const innerH = (wrap.clientHeight || 9999) - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - stripH - dockH;
-    const avail = Math.min(innerW, innerH) - 2 * this.pad - 8;
-    this.cell = Math.max(30, Math.min(72, Math.floor(avail / Math.max(this.grid.w, this.grid.h))));
-    const cssW = this.grid.w * this.cell + 2 * this.pad;
-    const cssH = this.grid.h * this.cell + 2 * this.pad;
+    const size = sizeBoard(this.grid.w, this.grid.h, innerW, innerH, this.pad);
+    this.cell = size.cell;
+    this.logicalWidth = size.logicalWidth;
+    this.logicalHeight = size.logicalHeight;
     const dpr = window.devicePixelRatio || 1;
-    this.canvas.style.width = `${cssW}px`;
-    this.canvas.style.height = `${cssH}px`;
-    this.canvas.width = Math.round(cssW * dpr);
-    this.canvas.height = Math.round(cssH * dpr);
+    // The backing canvas remains in logical drawing pixels. Its CSS dimensions
+    // shrink TOGETHER if the puzzle exceeds the mobile viewport.
+    this.canvas.style.width = `${size.displayWidth}px`;
+    this.canvas.style.height = `${size.displayHeight}px`;
+    this.canvas.width = Math.round(size.logicalWidth * dpr);
+    this.canvas.height = Math.round(size.logicalHeight * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.draw();
   }
@@ -189,8 +195,11 @@ export class Board {
   }
 
   private pos(e: PointerEvent): [number, number] {
-    const r = this.canvas.getBoundingClientRect();
-    return [e.clientX - r.left, e.clientY - r.top];
+    return pointOnBoard(
+      e.clientX, e.clientY,
+      this.canvas.getBoundingClientRect(),
+      this.logicalWidth, this.logicalHeight,
+    );
   }
 
   // -- gestures ----------------------------------------------------------------
