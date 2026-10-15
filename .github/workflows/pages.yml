@@ -1,8 +1,13 @@
-name: Deploy to GitHub Pages
+name: Deploy to GitHub Pages (optional)
 
+# This fork primarily publishes offline Android APKs. Do not fail every push
+# trying to auto-enable a Pages site with GITHUB_TOKEN (which lacks the
+# administration permission needed to create it).
+#
+# To publish the browser version, first go to repository Settings > Pages >
+# Build and deployment > Source: GitHub Actions, then manually run this
+# workflow from the Actions tab. No Pages site is needed to build the APK.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -28,10 +33,9 @@ jobs:
       - name: Pull upstream Glimmith puzzles for bundled offline play
         run: bash scripts/pull-betaller-puzzles.sh
       - run: npm run build
-      # creates the Pages site on first run, so no manual repository setting is needed
+      # Only configure an already enabled Pages site; never attempt to create
+      # one with GITHUB_TOKEN (GitHub denies that with a 403).
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
