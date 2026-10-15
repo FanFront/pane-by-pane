@@ -21,4 +21,6 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      - name: Verify bundled upstream puzzle integration
+        run: bash scripts/pull-betaller-puzzles.sh
       - run: npm run build
