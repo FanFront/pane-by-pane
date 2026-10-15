@@ -121,7 +121,9 @@
               <button type="button" id="done-share" data-i18n="share">퍼즐 공유</button>
             </div>
           </div>
-          <div class="toolbar">
+          <div class="toolbar" id="play-toolbar" role="group" aria-label="Puzzle tools">
+            <button type="button" id="undo-mobile" class="mobile-tool" data-i18n-title="undoTitle" data-i18n-aria="undo"><span class="mobile-tool-symbol" aria-hidden="true">↶</span><span data-i18n="undo">되돌리기</span></button>
+            <button type="button" id="redo-mobile" class="mobile-tool" data-i18n-title="redoTitle" data-i18n-aria="redo"><span class="mobile-tool-symbol" aria-hidden="true">↷</span><span data-i18n="redo">다시 실행</span></button>
             <button type="button" id="eraser" data-i18n="eraser">지우개 (드래그)</button>
             <button type="button" id="check" data-i18n="check">규칙 확인</button>
             <button type="button" id="hint" data-i18n="hint">힌트</button>
