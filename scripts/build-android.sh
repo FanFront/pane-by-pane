@@ -33,6 +33,40 @@ else
   npx --no-install cap sync android
 fi
 
+# Capacitor regenerates app/build.gradle for each build. Explicitly bind the
+# debug signing configuration to the persistent CI keystore when supplied,
+# rather than assuming Gradle's automatically selected debug key is the same.
+# No private key material is copied into the source tree or logged.
+if [[ -n "${PBP_ANDROID_SIGNING_KEYSTORE:-}" ]]; then
+  if [[ ! -f "$PBP_ANDROID_SIGNING_KEYSTORE" ]]; then
+    echo "::error::Persistent Android signing keystore not found" >&2
+    exit 1
+  fi
+  keytool -list -keystore "$PBP_ANDROID_SIGNING_KEYSTORE" \
+    -storepass android -alias androiddebugkey >/dev/null
+
+  cat >> android/app/build.gradle <<'GRADLE_SIGNING'
+  
+// Generated at build time: use the persistent debug certificate for trusted builds.
+android {
+    signingConfigs {
+        debug {
+            storeFile file(System.getenv('PBP_ANDROID_SIGNING_KEYSTORE'))
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+GRADLE_SIGNING
+  echo "Explicit persistent Android debug signing enabled."
+fi
+
 # Give published APKs a monotonically increasing versionCode (the workflow
 # run number), so Android treats each new release as an update. Local builds
 # without PBP_ANDROID_VERSION_CODE retain Capacitor's default version.
