@@ -44,3 +44,27 @@ test('client-to-board conversion handles nonuniform CSS scaling and viewport off
   assert.deepEqual(pointOnBoard(48, 123, rect, 450, 400), [0, 0]);
   assert.deepEqual(pointOnBoard(123, 283, { ...rect, width: 0 }, 450, 400), [-1, -1]);
 });
+
+test('taps still hit the right logical cell after a pinched zoom and pan', () => {
+  const size = sizeBoard(16, 16, 320, 420, 12);
+  const zoom = 3.25;
+  const panX = -48;
+  const panY = 65;
+  const stageLeft = 30;
+  const stageTop = 120;
+  const rect = {
+    left: stageLeft + (1 - zoom) * size.displayWidth / 2 + panX,
+    top: stageTop + (1 - zoom) * size.displayHeight / 2 + panY,
+    width: size.displayWidth * zoom,
+    height: size.displayHeight * zoom,
+  };
+  for (const [col, row] of [[0, 0], [7, 11], [15, 15]]) {
+    const x = 12 + (col + .5) * size.cell;
+    const y = 12 + (row + .5) * size.cell;
+    const clientX = rect.left + x * rect.width / size.logicalWidth;
+    const clientY = rect.top + y * rect.height / size.logicalHeight;
+    const [px, py] = pointOnBoard(clientX, clientY, rect, size.logicalWidth, size.logicalHeight);
+    assert.equal(Math.floor((px - 12) / size.cell), col);
+    assert.equal(Math.floor((py - 12) / size.cell), row);
+  }
+});
