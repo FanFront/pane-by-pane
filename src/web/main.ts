@@ -4,7 +4,7 @@ import { RULE_KINDS, type Puzzle, type RuleKind } from '../engine/types.ts';
 import { ruleConflict, type GenerateOptions } from '../engine/generator/generate.ts';
 import { checkCompletion, findViolations, nextHint } from './analysis.ts';
 import { Board, shapeIcon, solutionView } from './board.ts';
-import { PlayerState, WALL } from './model.ts';
+import { PlayerState, WALL, type PlayerCheckpoint } from './model.ts';
 import type { WorkerIn, WorkerOut } from './worker.ts';
 import { M, applyStatic, lang, setLang } from './i18n.ts';
 import { parsePresetPack, type PresetLevel, type PresetPack } from '../presets.ts';
@@ -70,6 +70,7 @@ interface Current {
 }
 let current: Current | null = null;
 let worker: Worker | null = null;
+let hypothesis: { key: string; checkpoint: PlayerCheckpoint } | null = null;
 
 const board = new Board($<HTMLCanvasElement>('board'), {
   onChange: () => onChange(),
@@ -243,6 +244,27 @@ function presetText(zh: string, en: string, ko: string): string {
   return lang === 'zh' ? zh : lang === 'ko' ? ko : en;
 }
 
+/** Hypothesis marks remain in memory until accepted. Leaving a level drops them. */
+function updateHypothesisUi(): void {
+  const active = hypothesis !== null;
+  const bar = $('hypothesis-bar');
+  const wasVisible = !bar.hidden;
+  bar.hidden = !active;
+  $('board-wrap').classList.toggle('hypothesis-active', active);
+  const button = $<HTMLButtonElement>('hypothesis');
+  button.textContent = active
+    ? presetText('假设中', 'Testing', '가설 중')
+    : presetText('假设', 'Hypothesis', '가설');
+  button.classList.toggle('active', active);
+  button.disabled = active || !current || Boolean(board.reveal);
+  $('hypothesis-label').textContent = presetText(
+    '假设模式 · 修改暂不写入存档', 'Hypothesis · changes are not saved yet', '가설 · 아직 저장되지 않음',
+  );
+  $('hypothesis-commit').textContent = presetText('采纳', 'Apply', '적용');
+  $('hypothesis-discard').textContent = presetText('放弃', 'Discard', '취소');
+  if (wasVisible !== active && current) board.layout();
+}
+
 function countComplete(entries: readonly LevelEntry[]): number {
   return chapterProgress(entries.map((entry) => entry.key), progress.completed);
 }
@@ -303,6 +325,7 @@ function refreshPresetUi(): void {
   presetNext.textContent = presetText('下一关 →', 'Next →', '다음 →');
 
   refreshCurrentPresetUi();
+  updateHypothesisUi();
   if (!presetEntries.length) {
     presetStatus.textContent = presetText('正在加载关卡…', 'Loading levels…', '레벨 로딩 중…');
   }
@@ -318,6 +341,7 @@ function renderLevelBrowser(): void {
   zoneButtons.replaceChildren();
   chapterList.replaceChildren();
   tiles.replaceChildren();
+  $('chapter-complete').hidden = true;
 
   $('levels-total').textContent = presetText(
     `共 ${countComplete(presetEntries)} / ${presetEntries.length} 关完成`,
@@ -339,7 +363,9 @@ function renderLevelBrowser(): void {
     const complete = row.chapters.reduce((n, c) => n + countComplete(c.levels), 0);
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.textContent = `${row.name} (${complete}/${row.count})`;
+    const allDone = row.count > 0 && complete === row.count;
+    btn.textContent = `${allDone ? '✓ ' : ''}${row.name} (${complete}/${row.count})`;
+    btn.classList.toggle('is-complete', allDone);
     btn.setAttribute('aria-pressed', String(row.key === zone.key));
     btn.addEventListener('click', () => {
       selectedZone = row.key;
@@ -361,15 +387,19 @@ function renderLevelBrowser(): void {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'level-chapter';
+      const allDone = row.levels.length > 0 && done === row.levels.length;
+      btn.classList.toggle('is-complete', allDone);
       const name = document.createElement('strong');
-      name.textContent = row.name;
+      name.textContent = `${allDone ? '✦ ' : ''}${row.name}`;
       const count = document.createElement('span');
       count.className = 'level-count';
-      count.textContent = presetText(
-        `${done} / ${row.levels.length} 已完成`,
-        `${done} / ${row.levels.length} completed`,
-        `${done} / ${row.levels.length} 완료`,
-      );
+      count.textContent = allDone
+        ? presetText('✓ 章节全部完成', '✓ Chapter complete', '✓ 챕터 완료')
+        : presetText(
+          `${done} / ${row.levels.length} 已完成`,
+          `${done} / ${row.levels.length} completed`,
+          `${done} / ${row.levels.length} 완료`,
+        );
       const meter = document.createElement('span');
       meter.className = 'level-meter';
       const fill = document.createElement('span');
@@ -385,7 +415,12 @@ function renderLevelBrowser(): void {
     return;
   }
   title.textContent = chapter.name;
+  const finished = chapter.levels.length > 0 && countComplete(chapter.levels) === chapter.levels.length;
   subprogress.textContent = `${countComplete(chapter.levels)} / ${chapter.levels.length}`;
+  $('chapter-complete').hidden = !finished;
+  $('chapter-complete').textContent = finished
+    ? presetText('✦ 本章节已全部通关！', '✦ Every level in this chapter is complete!', '✦ 이 챕터의 모든 퍼즐 완료!')
+    : '';
   for (const row of chapter.levels) {
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -546,10 +581,13 @@ function loadPuzzle(p: Puzzle, solution: Int32Array, stars: number, difficulty: 
   } catch {
     /* ignore */
   }
+  // Unsaved hypothetical edits never bleed into the next puzzle.
+  hypothesis = null;
   current = { puzzle: p, solution, engine: createEngine(p), ps, key, presetKey };
   board.eraser = false;
   $('eraser').classList.remove('active');
   board.setPuzzle(p, ps);
+  updateHypothesisUi();
   resetHint();
   revealBtn.textContent = M.reveal;
   info.hidden = false;
@@ -710,11 +748,12 @@ function setStatus(text: string, cls = ''): void {
 function refreshStatus(): void {
   if (!current) return;
   const c = checkCompletion(current.engine, current.ps);
-  board.setComplete(c.done && !board.reveal);
+  board.setComplete(c.done && !board.reveal && !hypothesis);
   const wasDone = !doneEl.hidden;
-  doneEl.hidden = !c.done;
-  if (wasDone !== c.done) board.layout();
-  if (c.done && current.presetKey && !board.reveal) {
+  const showDone = c.done && !hypothesis;
+  doneEl.hidden = !showDone;
+  if (wasDone !== showDone) board.layout();
+  if (c.done && current.presetKey && !board.reveal && !hypothesis) {
     if (completeLevel(progress, current.presetKey)) {
       saveLevelProgress(localStorage, progress);
       refreshCurrentPresetUi();
@@ -728,7 +767,26 @@ function refreshStatus(): void {
   $('done-share').textContent = current.presetKey
     ? presetText('查看关卡地图', 'Browse levels', '레벨 선택')
     : M.share;
-  if (c.done) setStatus(M.complete, 'ok');
+  // Completing every level in a chapter gets an unmistakable but compact reward.
+  const chapterBanner = $('chapter-done');
+  chapterBanner.hidden = true;
+  if (c.done && current.presetKey && !hypothesis) {
+    const entry = presetEntries.find((row) => row.key === current?.presetKey);
+    if (entry) {
+      const loc = levelLocation(entry);
+      const chapter = levelZones.find((z) => z.key === loc.zone)
+        ?.chapters.find((ch) => ch.key === `${loc.zone}/${loc.chapter}`);
+      if (chapter?.levels.length && countComplete(chapter.levels) === chapter.levels.length) {
+        chapterBanner.hidden = false;
+        chapterBanner.textContent = presetText(
+          '✦ 本章节全部通关！', '✦ Chapter complete!', '✦ 챕터 완료!',
+        );
+      }
+    }
+  }
+  if (c.done) setStatus(hypothesis
+    ? presetText('假设满足规则，可采纳结果', 'Hypothesis is valid · apply to save', '가설이 성립합니다 · 적용하여 저장')
+    : M.complete, 'ok');
   else if (c.reason === 'dangling') setStatus(M.dangling);
   else if (c.reason === 'wrong') setStatus(M.wrong);
   else setStatus('');
@@ -745,7 +803,7 @@ function onChange(): void {
   board.requestDraw();
   refreshStatus();
   updateButtons();
-  saveMarks();
+  if (!hypothesis) saveMarks();
 }
 
 function updateButtons(): void {
@@ -756,6 +814,8 @@ function updateButtons(): void {
   $<HTMLButtonElement>('undo-mobile').disabled = !current.ps.canUndo;
   $<HTMLButtonElement>('redo-mobile').disabled = !current.ps.canRedo;
   $<HTMLButtonElement>('clear').disabled = current.ps.isEmpty();
+  revealBtn.disabled = hypothesis !== null;
+  $<HTMLButtonElement>('hypothesis').disabled = hypothesis !== null || board.reveal !== null;
 }
 
 // -- wiring --------------------------------------------------------------------------
@@ -844,6 +904,29 @@ $('clear').addEventListener('click', () => {
 $('eraser').addEventListener('click', () => {
   board.eraser = !board.eraser;
   $('eraser').classList.toggle('active', board.eraser);
+});
+
+$('hypothesis').addEventListener('click', () => {
+  if (!current || hypothesis || board.reveal) return;
+  hypothesis = { key: current.key, checkpoint: current.ps.checkpoint() };
+  resetHint();
+  updateHypothesisUi();
+  updateButtons();
+  refreshStatus();
+});
+$('hypothesis-commit').addEventListener('click', () => {
+  if (!current || !hypothesis || current.key !== hypothesis.key) return;
+  current.ps.commitFrom(hypothesis.checkpoint);
+  hypothesis = null;
+  updateHypothesisUi();
+  onChange(); // Only now do autosave and completion accounting.
+});
+$('hypothesis-discard').addEventListener('click', () => {
+  if (!current || !hypothesis || current.key !== hypothesis.key) return;
+  current.ps.rollbackTo(hypothesis.checkpoint);
+  hypothesis = null;
+  updateHypothesisUi();
+  onChange();
 });
 $('check').addEventListener('click', () => {
   if (!current) return;
