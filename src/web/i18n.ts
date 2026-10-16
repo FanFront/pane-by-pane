@@ -317,7 +317,7 @@ const en: Messages = {
     ['Drag', 'join the cells into one region (never across a border)'],
     ['Tap a painted cell', 'clear it'],
     ['Double-tap a painted cell', 'border its whole region'],
-    ['Tap between cells', 'draw a border · tap again to remove'],
+    ['Tap/drag along borders', 'tap to toggle or swipe along grid lines to draw/erase several borders'],
     ['Eraser', 'drag to clear several cells'],
     ['Long-press', 'the area of the painted region, or of the empty cells joined to it'],
     ['Finished', 'when every border is drawn, or every cell painted'],
