@@ -351,8 +351,13 @@ export class Board {
     if (this.gesture === 'none') {
       // An intentional line drag must begin on a boundary and remain near it.
       // A stroke moving away from the edge still paints as before.
-      const alongBorder = start.zone === 'band' &&
-        nearestBorder(ps.grid, this.pad, this.cell, p, this.borderTolerance()) >= 0;
+      const verticalEdge = start.edge >= 0 &&
+        ps.grid.edgeB[start.edge] === ps.grid.edgeA[start.edge] + 1;
+      const dx = Math.abs(p[0] - from[0]), dy = Math.abs(p[1] - from[1]);
+      const followsStart = verticalEdge ? dy >= dx : dx >= dy;
+      const alongBorder = start.zone === 'band' && followsStart &&
+        nearestBorder(ps.grid, this.pad, this.cell, p, this.borderTolerance(),
+          verticalEdge ? 'vertical' : 'horizontal') >= 0;
       this.gesture = alongBorder ? 'wall' : 'paint';
       if (this.gesture === 'paint') {
         if (this.eraser) {
