@@ -81,7 +81,11 @@ h1 svg {
   letter-spacing: 0.12em;
   white-space: nowrap;
   color: var(--accent);
+  max-width: min(35vw, 440px);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+#stars::-webkit-scrollbar { display: none; }
 
 #actions {
   margin-left: auto;
@@ -910,6 +914,7 @@ a {
 }
 .level-tile strong { font-size: 15px; }
 .level-tile small { font-size: 11px; color: var(--muted); }
+.level-tile .level-difficulty { color: var(--accent); font-weight: 600; }
 .level-tile.is-complete {
   border-color: var(--accent);
   background: #eff6ee;

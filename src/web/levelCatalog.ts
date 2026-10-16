@@ -44,7 +44,7 @@ export function compareChapters(a: string, b: string): number {
     a.localeCompare(b, 'en', { numeric: true, sensitivity: 'base' });
 }
 
-/** Deterministic chapter order 1,2,...,10 and numeric file order 0008,0009,...,0527. */
+/** Chapters remain numbered 1..10; levels within each chapter go from easiest to hardest. */
 export function organizeLevels(entries: readonly LevelEntry[]): LevelZone[] {
   const zones = new Map<string, {name: string; chapters: Map<string, LevelEntry[]>}>();
   for (const entry of entries) {
@@ -65,9 +65,10 @@ export function organizeLevels(entries: readonly LevelEntry[]): LevelZone[] {
     const chapters = [...group.chapters].sort(([a], [b]) => compareChapters(a, b))
       .map(([name, levels]) => ({
         key: `${key}/${name}`, name,
-        levels: levels.sort((a, b) => a.level.id.split('/').at(-1)!.localeCompare(
-          b.level.id.split('/').at(-1)!, 'en', {numeric:true, sensitivity:'base'},
-        ) || a.key.localeCompare(b.key)),
+        levels: levels.sort((a, b) => a.level.difficulty - b.level.difficulty ||
+          a.level.id.split('/').at(-1)!.localeCompare(
+            b.level.id.split('/').at(-1)!, 'en', {numeric:true, sensitivity:'base'},
+          ) || a.key.localeCompare(b.key)),
       }));
     return { key, name: group.name, chapters, count: chapters.reduce((n, c) => n + c.levels.length, 0) };
   });

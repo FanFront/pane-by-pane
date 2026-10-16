@@ -86,7 +86,7 @@ export function parsePresetPack(data: unknown, fallbackName = '个人关卡'): P
     }
     const stars = raw.stars === undefined ? 0 : Number(raw.stars);
     const difficulty = raw.difficulty === undefined ? 0 : Number(raw.difficulty);
-    if (!integer(stars) || stars < 0 || stars > 7 ||
+    if (!integer(stars) || stars < 0 ||
         !Number.isFinite(difficulty) || difficulty < 0) {
       throw new Error(`Level ${id}: invalid difficulty`);
     }

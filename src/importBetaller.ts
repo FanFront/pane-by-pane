@@ -217,7 +217,7 @@ export function fromBetallerJSON(source: unknown, answer: unknown, name = 'puzzl
     title: `#${id}${category ? ' · ' + category : ''}`,
     chapter: name.split('/').slice(0, -1).join(' / '),
     source: 'Betaller/SolverOfTheArtisanOfGlimmith · user-supplied',
-    stars: Math.max(0, Math.min(7, score)),
+    stars: score,
     difficulty: score,
     puzzle, solution,
   };

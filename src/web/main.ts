@@ -12,6 +12,7 @@ import { readPersonalPack, savePersonalPack } from './presetStore.ts';
 import { organizeLevels, flattenedLevels, levelLocation, type LevelEntry, type LevelZone } from './levelCatalog.ts';
 import { readLevelProgress, saveLevelProgress, completeLevel, chapterProgress } from './levelProgress.ts';
 import { restoredPuzzleArgs, type LastPuzzle } from './lastPuzzle.ts';
+import { formatStars } from './difficultyStars.ts';
 import { chooseBackAction, installAndroidBack, type CapacitorBridge } from './androidBack.ts';
 
 applyStatic();
@@ -391,8 +392,12 @@ function renderLevelBrowser(): void {
       : row.key === progress.recent
         ? presetText('◆ 进行中', '◆ In progress', '◆ 진행 중')
         : presetText('○ 未完成', '○ Not done', '○ 미완료');
-    btn.setAttribute('aria-label', `${row.label}, ${state.textContent}`);
-    btn.append(name, state);
+    const rating = document.createElement('small');
+    rating.className = 'level-difficulty';
+    rating.textContent = row.level.stars ? `★ ${row.level.stars}` : '☆ 0';
+    rating.title = M.difficultyLabel(String(row.level.stars), String(row.level.difficulty));
+    btn.setAttribute('aria-label', `${row.label}, ${rating.title}, ${state.textContent}`);
+    btn.append(name, rating, state);
     btn.addEventListener('click', () => {
       const index = presetEntries.findIndex((e) => e.key === row.key);
       levelsDialog.close();
@@ -537,9 +542,10 @@ function loadPuzzle(p: Puzzle, solution: Int32Array, stars: number, difficulty: 
   resetHint();
   revealBtn.textContent = M.reveal;
   info.hidden = false;
-  starsEl.textContent = '★'.repeat(stars) + '☆'.repeat(7 - stars);
+  const starsLabel = formatStars(stars);
+  starsEl.textContent = starsLabel;
   starsEl.title = M.difficultyLabel(String(stars), String(difficulty));
-  $('goal-stars').textContent = M.difficultyLabel('★'.repeat(stars) + '☆'.repeat(7 - stars), String(difficulty));
+  $('goal-stars').textContent = M.difficultyLabel(starsLabel, String(difficulty));
   rulesInfo.replaceChildren();
   const add = (name: string, text: string, extra?: HTMLElement[]) => {
     const div = document.createElement('div');
@@ -619,7 +625,7 @@ function buildGoalBar(p: Puzzle, stars: number): void {
     goalBar.append(b);
     return b;
   };
-  chip('★'.repeat(stars) + '☆'.repeat(7 - stars), [], 'stars');
+  chip(formatStars(stars), [], 'stars');
   // one chip per rule kind, in a fixed order (area first, then shapes, then relations)
   const specs = new Map<string, () => void>();
   for (const c of p.clues) {
