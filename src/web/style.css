@@ -285,12 +285,14 @@ canvas#board {
   /* Board.layout sets both display dimensions to preserve aspect ratio.
      A one-axis max-width squeeze would distort large puzzles. */
   /* drop-shadow follows the drawn window, holes and all: set into the wall, then glowing */
-  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45)) drop-shadow(0 14px 28px rgba(0, 0, 0, 0.3));
+  /* One inexpensive small shadow; the atmospheric glow comes from #board-wrap. */
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
   transition: filter 1.2s ease;
 }
 
 canvas#board.lit {
-  filter: drop-shadow(0 0 14px rgba(255, 225, 170, 0.55)) drop-shadow(0 0 60px rgba(255, 205, 140, 0.35)) drop-shadow(0 0 140px rgba(255, 190, 110, 0.25));
+  /* Avoid multiple large blurred filters over an animated canvas on Android. */
+  filter: drop-shadow(0 0 16px rgba(255, 225, 170, 0.55));
 }
 
 /* iOS: a real switch under the finger is the only thing that makes the phone tick (see haptics.ts) */

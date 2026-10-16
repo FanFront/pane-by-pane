@@ -9,6 +9,7 @@ import {
   type BoardView, type PinchStart, type ScreenPoint,
 } from './boardViewport.ts';
 import { HUES, NONE, PlayerState, WALL, huePool } from './model.ts';
+import { boardDevicePixelRatio, completionAnimationActive, COMPLETION_FRAME_MS } from './renderPerformance.ts';
 
 /** colour of borders drawn by the player: a graphite sketch line, unlike the dark lead of the window */
 const PLAYER_WALL = '#5b5560';
@@ -91,6 +92,7 @@ export class Board {
   private shineT0 = 0;
   private now = 0;
   private anim: number | null = null;
+  private drawRequest: number | null = null;
   private cell = 64;
   private pad = 12;
   /** Drawing dimensions before any mobile display scaling. */
@@ -163,8 +165,16 @@ export class Board {
     this.pointerId = -1;
     this.haptics.end(false);
     this.resetView();
-    this.setComplete(false);
+    // A different puzzle must not inherit an in-flight victory animation.
+    if (this.anim !== null) cancelAnimationFrame(this.anim);
+    if (this.drawRequest !== null) cancelAnimationFrame(this.drawRequest);
+    this.anim = null;
+    this.drawRequest = null;
+    this.complete = false;
     this.lit = 0;
+    this.litFrom = 0;
+    this.canvas.classList.remove('lit');
+    this.wrap.classList.remove('lit');
     this.layout();
   }
 
@@ -181,13 +191,18 @@ export class Board {
     this.cell = size.cell;
     this.logicalWidth = size.logicalWidth;
     this.logicalHeight = size.logicalHeight;
-    const dpr = window.devicePixelRatio || 1;
-    // The backing canvas remains in logical drawing pixels. Its CSS dimensions
-    // shrink TOGETHER if the puzzle exceeds the mobile viewport.
+    const dpr = boardDevicePixelRatio(window.devicePixelRatio || 1);
+    // The CSS size retains logical aspect and input mapping, independently of DPR.
     this.canvas.style.width = `${size.displayWidth}px`;
     this.canvas.style.height = `${size.displayHeight}px`;
-    this.canvas.width = Math.round(size.logicalWidth * dpr);
-    this.canvas.height = Math.round(size.logicalHeight * dpr);
+    const width = Math.round(size.logicalWidth * dpr);
+    const height = Math.round(size.logicalHeight * dpr);
+    // Assigning canvas.width/height clears and reallocates its backing buffer.
+    // Avoid doing so when a toolbar or completion status changes but its size does not.
+    if (this.canvas.width !== width || this.canvas.height !== height) {
+      this.canvas.width = width;
+      this.canvas.height = height;
+    }
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.applyView();
     this.draw();
@@ -306,7 +321,7 @@ export class Board {
       this.areaCells = cells;
       this.cb.onArea({ cell: hit.cell, count });
       this.gesture = 'consumed';
-      this.draw();
+      this.requestDraw();
     });
   }
 
@@ -384,7 +399,7 @@ export class Board {
     if (this.areaCells) {
       this.areaCells = null;
       this.cb.onArea(null);
-      this.draw();
+      this.requestDraw();
     }
     const ps = this.ps;
     const hit = this.downHit;
@@ -417,7 +432,7 @@ export class Board {
     if (this.changed) this.cb.onChange();
     this.changed = false;
     this.downHit = null;
-    this.draw();
+    this.requestDraw();
   }
 
   /** Finish a pending paint stroke when a second finger joins. */
@@ -432,7 +447,7 @@ export class Board {
     this.haptics.end(false);
     if (this.changed) this.cb.onChange();
     this.changed = false;
-    this.draw();
+    this.requestDraw();
   }
 
   /** Apply a state change inside one undo step per gesture. */
@@ -444,7 +459,7 @@ export class Board {
     }
     fn();
     this.haptics.tick();
-    this.draw();
+    this.requestDraw();
   }
 
   private startLongPress(fn: () => void): void {
@@ -503,13 +518,25 @@ export class Board {
     const ease = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
     this.lit = this.litFrom + ((this.complete ? 1 : 0) - this.litFrom) * ease;
     // the play of light is slow: half the frame rate is plenty once the ramp is over
-    if (k < 1 || now - this.now >= 30) {
+    const more = completionAnimationActive(
+      now, this.litT0, this.litDur, this.shineT0,
+      this.complete, REDUCED_MOTION, this.reveal !== null,
+    );
+    // Paint at most ~30 FPS during the short transition; always draw its final frame.
+    if (now - this.now >= COMPLETION_FRAME_MS || !more) {
       this.now = now;
       this.draw();
     }
-    // keep animating while ramping, and while the finished window shimmers (unless the viewer prefers stillness)
-    const more = k < 1 || (this.complete && !REDUCED_MOTION && !this.reveal);
     this.anim = more ? requestAnimationFrame((t) => this.tick(t)) : null;
+  }
+
+  /** Schedule at most one board draw per browser frame during rapid input. */
+  requestDraw(): void {
+    if (this.drawRequest !== null) return;
+    this.drawRequest = requestAnimationFrame(() => {
+      this.drawRequest = null;
+      this.draw();
+    });
   }
 
   /**
@@ -575,6 +602,11 @@ export class Board {
   }
 
   draw(): void {
+    // A forced layout/animation draw supersedes a pending input redraw.
+    if (this.drawRequest !== null) {
+      cancelAnimationFrame(this.drawRequest);
+      this.drawRequest = null;
+    }
     const g = this.grid;
     const p = this.puzzle;
     const ps = this.reveal ?? this.ps;

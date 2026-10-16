@@ -247,6 +247,37 @@ function countComplete(entries: readonly LevelEntry[]): number {
   return chapterProgress(entries.map((entry) => entry.key), progress.completed);
 }
 
+/** Update completion and navigation without rebuilding/sorting the full level catalog. */
+function refreshCurrentPresetUi(): void {
+  const index = presetEntries.findIndex((e) => e.key === current?.presetKey);
+  presetPrev.disabled = index <= 0;
+  presetNext.disabled = index < 0 || index >= presetEntries.length - 1;
+  $('preset-current').textContent = index < 0
+    ? presetText('尚未选择关卡', 'No level selected', '선택한 레벨 없음')
+    : `${presetEntries[index].label} · ${progress.completed.has(presetEntries[index].key)
+      ? presetText('✓ 已完成', '✓ Completed', '✓ 완료')
+      : presetText('○ 未完成', '○ Not completed', '○ 미완료')}`;
+}
+
+/** Rebuild only when an imported or bundled level pack actually changes. */
+function rebuildPresetCatalog(): void {
+  const packs: { origin: string; pack: PresetPack }[] = [];
+  if (betallerPack) packs.push({ origin: 'betaller', pack: betallerPack });
+  if (bundledPack) packs.push({ origin: 'bundled', pack: bundledPack });
+  if (privatePack) packs.push({ origin: 'private', pack: privatePack });
+  if (personalPack) packs.push({ origin: 'personal', pack: personalPack });
+  const all = packs.flatMap(({ origin, pack }) =>
+    pack.levels.map((level): LevelEntry => ({
+      key: `${origin}:${level.id}`,
+      label: `${pack.name} / ${level.chapter ? level.chapter + ' / ' : ''}${level.title}`,
+      level,
+      packName: pack.name,
+    })),
+  );
+  levelZones = organizeLevels(all);
+  presetEntries = flattenedLevels(levelZones);
+}
+
 function refreshPresetUi(): void {
   $('preset-heading').textContent = presetText('关卡模式', 'Level mode', '스테이지 모드');
   $('preset-intro').textContent = presetText(
@@ -271,29 +302,7 @@ function refreshPresetUi(): void {
   presetPrev.textContent = presetText('← 上一关', '← Previous', '← 이전');
   presetNext.textContent = presetText('下一关 →', 'Next →', '다음 →');
 
-  const packs: { origin: string; pack: PresetPack }[] = [];
-  if (betallerPack) packs.push({ origin: 'betaller', pack: betallerPack });
-  if (bundledPack) packs.push({ origin: 'bundled', pack: bundledPack });
-  if (privatePack) packs.push({ origin: 'private', pack: privatePack });
-  if (personalPack) packs.push({ origin: 'personal', pack: personalPack });
-  const all = packs.flatMap(({ origin, pack }) =>
-    pack.levels.map((level): LevelEntry => ({
-      key: `${origin}:${level.id}`,
-      label: `${pack.name} / ${level.chapter ? level.chapter + ' / ' : ''}${level.title}`,
-      level,
-      packName: pack.name,
-    })),
-  );
-  levelZones = organizeLevels(all);
-  presetEntries = flattenedLevels(levelZones);
-  const index = presetEntries.findIndex((e) => e.key === current?.presetKey);
-  presetPrev.disabled = index <= 0;
-  presetNext.disabled = index < 0 || index >= presetEntries.length - 1;
-  $('preset-current').textContent = index < 0
-    ? presetText('尚未选择关卡', 'No level selected', '선택한 레벨 없음')
-    : `${presetEntries[index].label} · ${progress.completed.has(presetEntries[index].key)
-      ? presetText('✓ 已完成', '✓ Completed', '✓ 완료')
-      : presetText('○ 未完成', '○ Not completed', '○ 미완료')}`;
+  refreshCurrentPresetUi();
   if (!presetEntries.length) {
     presetStatus.textContent = presetText('正在加载关卡…', 'Loading levels…', '레벨 로딩 중…');
   }
@@ -469,6 +478,7 @@ presetFile.addEventListener('change', async () => {
     const pack = parsePresetPack(JSON.parse(await file.text()), file.name.endsWith('.json') ? file.name.slice(0, -5) : file.name);
     await savePersonalPack(pack);
     personalPack = pack;
+    rebuildPresetCatalog();
     refreshPresetUi();
     presetStatus.textContent = presetText(
       `已导入并离线保存 ${pack.levels.length} 关`,
@@ -513,6 +523,7 @@ async function initPresets(openOnFirstVisit = false): Promise<void> {
   } catch (err) {
     presetStatus.textContent = `Local presets unavailable: ${err instanceof Error ? err.message : String(err)}`;
   }
+  rebuildPresetCatalog();
   refreshPresetUi();
   if (openOnFirstVisit) openLevelBrowser();
   if (betallerPack?.levels.length) {
@@ -706,7 +717,9 @@ function refreshStatus(): void {
   if (c.done && current.presetKey && !board.reveal) {
     if (completeLevel(progress, current.presetKey)) {
       saveLevelProgress(localStorage, progress);
-      refreshPresetUi();
+      refreshCurrentPresetUi();
+      // The picker is normally closed during play; only refresh it if visible.
+      if (levelsDialog.open) renderLevelBrowser();
     }
   }
   $('done-new').textContent = current.presetKey
@@ -729,7 +742,7 @@ function onChange(): void {
   const v = errorMode.value === 'always' ? findViolations(current.puzzle, current.ps) : { cells: new Set<number>(), edges: new Set<number>() };
   board.errors = v.cells;
   board.errorEdges = v.edges;
-  board.draw();
+  board.requestDraw();
   refreshStatus();
   updateButtons();
   saveMarks();
@@ -837,7 +850,7 @@ $('check').addEventListener('click', () => {
   const v = findViolations(current.puzzle, current.ps);
   board.errors = v.cells;
   board.errorEdges = v.edges;
-  board.draw();
+  board.requestDraw();
   setStatus(M.checkResult(v.cells.size, v.edges.size));
 });
 errorMode.addEventListener('change', () => onChange());
@@ -853,7 +866,7 @@ hintBtn.addEventListener('click', () => {
   const h = board.hint;
   if (h?.kind === 'step' && board.hintStage === 1) {
     board.hintStage = 2;
-    board.draw();
+    board.requestDraw();
     setStatus(h.reason);
     hintBtn.textContent = M.hintApply;
     return;
@@ -876,13 +889,13 @@ hintBtn.addEventListener('click', () => {
   const next = nextHint(current.engine, current.ps, current.solution);
   if (!next) {
     resetHint();
-    board.draw();
+    board.requestDraw();
     setStatus(checkCompletion(current.engine, current.ps).done ? M.hintDone : M.hintNone);
     return;
   }
   board.hint = next;
   board.hintStage = 1;
-  board.draw();
+  board.requestDraw();
   if (next.kind === 'mistake') {
     setStatus(next.edge >= 0 ? M.mistakeWall : next.cells.length ? M.mistakeCells : M.mistakeOther);
     hintBtn.textContent = M.hint;
@@ -898,7 +911,7 @@ function showSolution(): void {
   resetHint();
   board.errors = new Set();
   board.errorEdges = new Set();
-  board.draw();
+  board.requestDraw();
   revealBtn.textContent = M.hideSolution;
   for (const id of ['eraser', 'check', 'hint']) $<HTMLButtonElement>(id).disabled = true;
   setStatus(M.revealing);
