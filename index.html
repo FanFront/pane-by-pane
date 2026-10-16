@@ -85,6 +85,7 @@
         <span id="levels-subprogress" class="muted small"></span>
       </div>
       <div id="level-chapters" class="level-chapters"></div>
+      <div id="chapter-complete" class="chapter-complete" hidden role="status"></div>
       <div id="level-grid" class="level-grid" hidden></div>
       <p class="small muted" id="levels-legend">✓ 已完成 · ○ 未完成</p>
     </dialog>
@@ -223,12 +224,19 @@
               <button type="button" id="done-share" data-i18n="share">퍼즐 공유</button>
             </div>
           </div>
+          <div id="chapter-done" class="chapter-done" hidden role="status"></div>
+          <div id="hypothesis-bar" class="hypothesis-bar" hidden role="group" aria-label="Hypothesis tools">
+            <span id="hypothesis-label">假设模式 · 暂不保存</span>
+            <button type="button" id="hypothesis-commit" class="primary">采纳</button>
+            <button type="button" id="hypothesis-discard">放弃</button>
+          </div>
           <div class="toolbar" id="play-toolbar" role="group" aria-label="Puzzle tools">
             <button type="button" id="undo-mobile" class="mobile-tool" data-i18n-title="undoTitle" data-i18n-aria="undo"><span class="mobile-tool-symbol" aria-hidden="true">↶</span><span data-i18n="undo">되돌리기</span></button>
             <button type="button" id="redo-mobile" class="mobile-tool" data-i18n-title="redoTitle" data-i18n-aria="redo"><span class="mobile-tool-symbol" aria-hidden="true">↷</span><span data-i18n="redo">다시 실행</span></button>
             <button type="button" id="eraser" data-i18n="eraser">지우개 (드래그)</button>
             <button type="button" id="check" data-i18n="check">규칙 확인</button>
             <button type="button" id="hint" data-i18n="hint">힌트</button>
+            <button type="button" id="hypothesis">假设</button>
           </div>
         </div>
       </main>

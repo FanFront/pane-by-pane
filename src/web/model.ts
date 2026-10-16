@@ -21,6 +21,16 @@ export interface Snapshot {
   hue: number[];
   stamp: Int32Array;
 }
+export interface PlayerCheckpoint {
+  state: Snapshot;
+  history: Snapshot[];
+  future: Snapshot[];
+  nextId: number;
+  clock: number;
+}
+function copySnapshot(s: Snapshot): Snapshot {
+  return { paint: s.paint.slice(), edge: s.edge.slice(), hue: s.hue.slice(), stamp: s.stamp.slice() };
+}
 
 /** Pastel fills for paint regions; neighbouring regions get different ones. */
 /** glass colours: jewel tones, light enough for the clue ink to stay readable */
@@ -102,6 +112,33 @@ export class PlayerState {
     this.hue = s.hue.slice();
     this.stamp = s.stamp.slice();
     this.nextId = Math.max(1, ...Array.from(this.paint)) + 1;
+  }
+
+  /** Checkpoint includes history, so cancelling a hypothesis restores redo too. */
+  checkpoint(): PlayerCheckpoint {
+    return { state: this.snapshot(), history: this.history.map(copySnapshot),
+      future: this.future.map(copySnapshot), nextId: this.nextId, clock: this.clock };
+  }
+
+  rollbackTo(checkpoint: PlayerCheckpoint): void {
+    this.restore(checkpoint.state);
+    this.history = checkpoint.history.map(copySnapshot);
+    this.future = checkpoint.future.map(copySnapshot);
+    this.nextId = checkpoint.nextId;
+    this.clock = checkpoint.clock;
+  }
+
+  /** Accept a hypothetical sequence as one undoable action. */
+  commitFrom(checkpoint: PlayerCheckpoint): void {
+    const changed = this.paint.some((v, i) => v !== checkpoint.state.paint[i])
+      || this.edge.some((v, i) => v !== checkpoint.state.edge[i])
+      || JSON.stringify(this.hue) !== JSON.stringify(checkpoint.state.hue);
+    this.history = checkpoint.history.map(copySnapshot);
+    this.future = changed ? [] : checkpoint.future.map(copySnapshot);
+    if (changed) {
+      this.history.push(copySnapshot(checkpoint.state));
+      if (this.history.length > 200) this.history.shift();
+    }
   }
 
   /** Call before a gesture that changes state. */

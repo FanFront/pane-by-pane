@@ -4,6 +4,7 @@ import type { Puzzle } from '../engine/types.ts';
 import type { Hint, Mistake } from './analysis.ts';
 import { Haptics } from './haptics.ts';
 import { pointOnBoard, sizeBoard } from './boardGeometry.ts';
+import { borderEdgesOnStroke, nearestBorder, paintCellsOnStroke, type BoardPoint } from './boardStroke.ts';
 import {
   clampBoardView, defaultBoardView, movePinch, startPinch,
   type BoardView, type PinchStart, type ScreenPoint,
@@ -29,7 +30,7 @@ const MOVE_SLOP = 8;
 /** a second tap on a just-cleared painted cell within this time walls its region instead */
 const DOUBLE_TAP_MS = 320;
 /** Border band width, as a fraction of the cell size on each side of an edge (was 0.2; halved). */
-const BAND_MARGIN = 0.1;
+// Finger tolerance is measured in screen pixels and capped as a fraction of the cell.
 
 export interface BoardCallbacks {
   /** called after any change to the player's marks */
@@ -51,7 +52,7 @@ type Hit = { cell: number; zone: 'inner' | 'band'; edge: number };
  *                           if the drag's first new cell is already part of that same
  *                           region, the whole stroke erases instead (a quick way to clear
  *                           a region without switching to eraser mode)
- *   tap on a border         toggle a wall, applied on release (no dragging along borders)
+ *   tap on a border         toggle a wall; drag along borders to draw/erase a continuous line
  *   long-press on a cell    show the size of its paint region, or of the empty area around it
  *   eraser mode             tap/drag removes paint (walls are removed by tapping them)
  */
@@ -114,7 +115,10 @@ export class Board {
   private downHit: Hit | null = null;
   private moved = false;
   private changed = false;
-  private gesture: 'none' | 'paint' | 'consumed' = 'none';
+  private gesture: 'none' | 'paint' | 'wall' | 'consumed' = 'none';
+  private lastBoardPos: BoardPoint | null = null;
+  private strokeWallValue: 0 | 1 = WALL;
+  private strokeEdges = new Set<number>();
   /** decided lazily, the first time a paint drag reaches a cell other than the start cell */
   private dragMode: 'extend' | 'erase' | null = null;
   private brush = 0;
@@ -163,6 +167,8 @@ export class Board {
     this.pinch = null;
     this.blockPainting = false;
     this.pointerId = -1;
+    this.lastBoardPos = null;
+    this.strokeEdges.clear();
     this.haptics.end(false);
     this.resetView();
     // A different puzzle must not inherit an in-flight victory animation.
@@ -252,26 +258,21 @@ export class Board {
     this.applyView();
   }
 
+  private borderTolerance(): number {
+    const scale = this.logicalWidth > 0
+      ? this.canvas.getBoundingClientRect().width / this.logicalWidth : 1;
+    return Math.min(this.cell * 0.24, 11 / Math.max(0.1, scale));
+  }
+
   private hit(px: number, py: number): Hit | null {
     const g = this.grid!;
-    const x = (px - this.pad) / this.cell;
-    const y = (py - this.pad) / this.cell;
+    const x = Math.floor((px - this.pad) / this.cell);
+    const y = Math.floor((py - this.pad) / this.cell);
     if (x < 0 || y < 0 || x >= g.w || y >= g.h) return null;
-    const cx = Math.floor(x);
-    const cy = Math.floor(y);
-    const c = cy * g.w + cx;
+    const c = y * g.w + x;
     if (!g.active[c]) return null;
-    const fx = x - cx;
-    const fy = y - cy;
-    const dx = Math.abs(fx - 0.5);
-    const dy = Math.abs(fy - 0.5);
-    if (Math.max(dx, dy) < 0.5 - BAND_MARGIN) return { cell: c, zone: 'inner', edge: -1 };
-    let other: number;
-    if (dx > dy) other = fx < 0.5 ? (cx > 0 ? c - 1 : -1) : cx < g.w - 1 ? c + 1 : -1;
-    else other = fy < 0.5 ? (cy > 0 ? c - g.w : -1) : cy < g.h - 1 ? c + g.w : -1;
-    const edge = other >= 0 ? edgeBetween(g, c, other) : -1;
-    if (edge < 0) return { cell: c, zone: 'inner', edge: -1 };
-    return { cell: c, zone: 'band', edge };
+    const edge = nearestBorder(g, this.pad, this.cell, [px, py], this.borderTolerance());
+    return edge >= 0 ? { cell: c, zone: 'band', edge } : { cell: c, zone: 'inner', edge: -1 };
   }
 
   private pos(e: PointerEvent): [number, number] {
@@ -311,6 +312,9 @@ export class Board {
     this.changed = false;
     this.gesture = 'none';
     this.dragMode = null;
+    this.lastBoardPos = p;
+    this.strokeEdges.clear();
+    this.strokeWallValue = this.eraser || (hit.edge >= 0 && this.ps.edge[hit.edge] === WALL) ? NONE : WALL;
     this.hint = null;
     const ps = this.ps;
     // Nothing is changed yet: a wall waits for release, paint waits for a tap or a move.
@@ -343,38 +347,57 @@ export class Board {
     if (!this.moved || this.gesture === 'consumed') return;
     const ps = this.ps;
     const start = this.downHit!;
+    const from = this.lastBoardPos ?? this.pos(e);
     if (this.gesture === 'none') {
-      // First movement decides: every drag is a paint (or erase) stroke from the start cell.
-      this.gesture = 'paint';
-      if (this.eraser) {
-        if (ps.paint[start.cell]) this.change(() => ps.erasePaint(start.cell));
-      } else if (!this.brush) {
-        this.change(() => {
-          this.brush = ps.newRegion(start.cell);
-        });
+      // An intentional line drag must begin on a boundary and remain near it.
+      // A stroke moving away from the edge still paints as before.
+      const verticalEdge = start.edge >= 0 &&
+        ps.grid.edgeB[start.edge] === ps.grid.edgeA[start.edge] + 1;
+      const dx = Math.abs(p[0] - from[0]), dy = Math.abs(p[1] - from[1]);
+      const followsStart = verticalEdge ? dy >= dx : dx >= dy;
+      const alongBorder = start.zone === 'band' && followsStart &&
+        nearestBorder(ps.grid, this.pad, this.cell, p, this.borderTolerance(),
+          verticalEdge ? 'vertical' : 'horizontal') >= 0;
+      this.gesture = alongBorder ? 'wall' : 'paint';
+      if (this.gesture === 'paint') {
+        if (this.eraser) {
+          if (ps.paint[start.cell]) this.change(() => ps.erasePaint(start.cell));
+        } else if (!this.brush) {
+          this.change(() => { this.brush = ps.newRegion(start.cell); });
+        }
       }
     }
-    const hit = this.hit(...p);
-    if (!hit) return;
-    if (this.eraser) {
-      if (ps.paint[hit.cell]) this.change(() => ps.erasePaint(hit.cell));
+    if (this.gesture === 'wall') {
+      for (const edge of borderEdgesOnStroke(ps.grid, this.pad, this.cell, from, p, this.borderTolerance())) {
+        if (this.strokeEdges.has(edge)) continue;
+        this.strokeEdges.add(edge);
+        if (!ps.fixed[edge] && ps.edge[edge] !== this.strokeWallValue) {
+          this.change(() => ps.setEdge(edge, this.strokeWallValue));
+        }
+      }
+      this.lastBoardPos = p;
       return;
     }
-    if (!this.brush) return;
-    if (this.dragMode === null && hit.cell !== start.cell) {
-      // The first cell the drag actually reaches (not just any sample still inside
-      // the start cell) decides the rest of the stroke: onto the same region reads
-      // as "erase this", onto anything else keeps extending/filling as before.
-      this.dragMode = ps.paint[hit.cell] === this.brush ? 'erase' : 'extend';
-      // The stroke started on the region too, so it erases like the rest of it.
-      if (this.dragMode === 'erase' && ps.paint[start.cell]) this.change(() => ps.erasePaint(start.cell));
+    // Replay all intermediate cells (fast or coalesced touch events may skip many).
+    for (const cell of paintCellsOnStroke(ps.grid, this.pad, this.cell, from, p)) {
+      if (this.eraser) {
+        if (ps.paint[cell]) this.change(() => ps.erasePaint(cell));
+        continue;
+      }
+      if (!this.brush) continue;
+      if (this.dragMode === null && cell !== start.cell) {
+        this.dragMode = ps.paint[cell] === this.brush ? 'erase' : 'extend';
+        if (this.dragMode === 'erase' && ps.paint[start.cell]) {
+          this.change(() => ps.erasePaint(start.cell));
+        }
+      }
+      if (this.dragMode === 'erase') {
+        if (ps.paint[cell]) this.change(() => ps.erasePaint(cell));
+      } else if (ps.canExtend(cell, this.brush)) {
+        this.change(() => ps.extend(cell, this.brush));
+      }
     }
-    if (this.dragMode === 'erase') {
-      if (ps.paint[hit.cell]) this.change(() => ps.erasePaint(hit.cell));
-    } else if (ps.canExtend(hit.cell, this.brush)) {
-      // A blocked stroke (across a wall) changes nothing and leaves no undo step.
-      this.change(() => ps.extend(hit.cell, this.brush));
-    }
+    this.lastBoardPos = p;
   }
 
   private onUp(e: PointerEvent): void {
@@ -432,6 +455,8 @@ export class Board {
     if (this.changed) this.cb.onChange();
     this.changed = false;
     this.downHit = null;
+    this.lastBoardPos = null;
+    this.strokeEdges.clear();
     this.requestDraw();
   }
 
@@ -444,6 +469,8 @@ export class Board {
     }
     this.pointerId = -1;
     this.downHit = null;
+    this.lastBoardPos = null;
+    this.strokeEdges.clear();
     this.haptics.end(false);
     if (this.changed) this.cb.onChange();
     this.changed = false;

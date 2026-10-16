@@ -652,7 +652,7 @@ button:disabled {
 
 .toolbar {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 7px;
 }
 .mobile-tool {
@@ -815,6 +815,32 @@ a {
   color: var(--accent);
 }
 
+/* Hypothesis branch: visible, undo-safe, not persisted until accepted. */
+.hypothesis-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 9px;
+  width: 100%;
+  border: 1px solid #e7c572;
+  border-radius: 8px;
+  background: #fff1c9;
+  color: #332715;
+  font-size: 12px;
+}
+.hypothesis-bar span { margin-right: auto; }
+.hypothesis-bar button { min-height: 32px; padding: 5px 11px; }
+.hypothesis-bar[hidden], .chapter-done[hidden], .chapter-complete[hidden] { display: none; }
+#board-wrap.hypothesis-active #board-viewport { outline: 2px solid rgba(246, 194, 80, 0.55); border-radius: 8px; }
+.chapter-done {
+  text-align: center;
+  color: #ffe5a0;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  padding: 2px;
+}
 /* -- responsive play surface ---------------------------------------------- */
 @media (max-width: 700px) {
   #top { gap: 8px; }
@@ -864,6 +890,10 @@ a {
   min-height: 45px;
   font-weight: 600;
 }
+.level-zones button.is-complete:not([aria-pressed="true"]) {
+  background: #fff0c9;
+  border-color: #d8aa4f;
+}
 .level-zones button[aria-pressed="true"] {
   color: #fff;
   background: var(--accent);
@@ -889,10 +919,25 @@ a {
   text-align: left;
   background: #fffdf8;
 }
+.level-chapter.is-complete {
+  border-color: #bd922e;
+  background: linear-gradient(145deg, #fffcf2, #faeccc);
+}
+.level-chapter.is-complete strong { color: #7f5b15; }
 .level-chapter strong { overflow-wrap: anywhere; }
 .level-chapter .level-count { font-size: 12px; color: var(--muted); }
 .level-meter { width: 100%; height: 5px; overflow: hidden; border-radius: 5px; background: var(--line); }
 .level-meter > span { display: block; height: 100%; background: var(--accent); }
+.chapter-complete {
+  background: #fff0cb;
+  border: 1px solid #dbb865;
+  color: #70521b;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 650;
+  margin: 0 0 10px;
+}
 .level-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
