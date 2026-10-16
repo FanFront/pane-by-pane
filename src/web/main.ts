@@ -259,6 +259,25 @@ function refreshCurrentPresetUi(): void {
       : presetText('○ 未完成', '○ Not completed', '○ 미완료')}`;
 }
 
+/** Rebuild only when an imported or bundled level pack actually changes. */
+function rebuildPresetCatalog(): void {
+  const packs: { origin: string; pack: PresetPack }[] = [];
+  if (betallerPack) packs.push({ origin: 'betaller', pack: betallerPack });
+  if (bundledPack) packs.push({ origin: 'bundled', pack: bundledPack });
+  if (privatePack) packs.push({ origin: 'private', pack: privatePack });
+  if (personalPack) packs.push({ origin: 'personal', pack: personalPack });
+  const all = packs.flatMap(({ origin, pack }) =>
+    pack.levels.map((level): LevelEntry => ({
+      key: `${origin}:${level.id}`,
+      label: `${pack.name} / ${level.chapter ? level.chapter + ' / ' : ''}${level.title}`,
+      level,
+      packName: pack.name,
+    })),
+  );
+  levelZones = organizeLevels(all);
+  presetEntries = flattenedLevels(levelZones);
+}
+
 function refreshPresetUi(): void {
   $('preset-heading').textContent = presetText('关卡模式', 'Level mode', '스테이지 모드');
   $('preset-intro').textContent = presetText(
@@ -283,21 +302,6 @@ function refreshPresetUi(): void {
   presetPrev.textContent = presetText('← 上一关', '← Previous', '← 이전');
   presetNext.textContent = presetText('下一关 →', 'Next →', '다음 →');
 
-  const packs: { origin: string; pack: PresetPack }[] = [];
-  if (betallerPack) packs.push({ origin: 'betaller', pack: betallerPack });
-  if (bundledPack) packs.push({ origin: 'bundled', pack: bundledPack });
-  if (privatePack) packs.push({ origin: 'private', pack: privatePack });
-  if (personalPack) packs.push({ origin: 'personal', pack: personalPack });
-  const all = packs.flatMap(({ origin, pack }) =>
-    pack.levels.map((level): LevelEntry => ({
-      key: `${origin}:${level.id}`,
-      label: `${pack.name} / ${level.chapter ? level.chapter + ' / ' : ''}${level.title}`,
-      level,
-      packName: pack.name,
-    })),
-  );
-  levelZones = organizeLevels(all);
-  presetEntries = flattenedLevels(levelZones);
   refreshCurrentPresetUi();
   if (!presetEntries.length) {
     presetStatus.textContent = presetText('正在加载关卡…', 'Loading levels…', '레벨 로딩 중…');
@@ -474,6 +478,7 @@ presetFile.addEventListener('change', async () => {
     const pack = parsePresetPack(JSON.parse(await file.text()), file.name.endsWith('.json') ? file.name.slice(0, -5) : file.name);
     await savePersonalPack(pack);
     personalPack = pack;
+    rebuildPresetCatalog();
     refreshPresetUi();
     presetStatus.textContent = presetText(
       `已导入并离线保存 ${pack.levels.length} 关`,
@@ -518,6 +523,7 @@ async function initPresets(openOnFirstVisit = false): Promise<void> {
   } catch (err) {
     presetStatus.textContent = `Local presets unavailable: ${err instanceof Error ? err.message : String(err)}`;
   }
+  rebuildPresetCatalog();
   refreshPresetUi();
   if (openOnFirstVisit) openLevelBrowser();
   if (betallerPack?.levels.length) {
