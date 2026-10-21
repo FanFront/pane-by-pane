@@ -3,6 +3,7 @@ import { parseKey, type ShapeKey } from '../engine/shape.ts';
 import type { Puzzle } from '../engine/types.ts';
 import type { Hint, Mistake } from './analysis.ts';
 import { Haptics } from './haptics.ts';
+import { isBoardViewportControl, preventBoardTouchDefault } from './boardTouch.ts';
 import { boardRotationTransform, pointOnRotatedBoard, sizeBoard, type BoardRotation } from './boardGeometry.ts';
 import { borderEdgesOnStroke, nearestBorder, paintCellsOnStroke, type BoardPoint } from './boardStroke.ts';
 import {
@@ -161,11 +162,13 @@ export class Board {
     viewport.addEventListener('contextmenu', (e) => e.preventDefault());
     this.resetViewButton.addEventListener('click', () => this.resetView());
     this.rotateButton.addEventListener('click', () => this.rotateBoard());
-    // Block the browser's own touch gestures on the board (pinch zoom, double-tap
-    // zoom, long-press magnifier/selection); pointer events still fire. With the
-    // haptic switch in place the touches must keep their default handling (that
-    // is what ticks), and CSS touch-action / user-select do the blocking.
-    if (!this.haptics.overlay) for (const t of ['touchstart', 'touchmove', 'touchend'] as const) viewport.addEventListener(t, (e) => e.preventDefault(), { passive: false });
+    // Block browser zoom/selection during board gestures, but do not cancel
+    // touchstart/touchend on the overlay buttons: that suppresses their click
+    // events on Android WebView and mobile Chrome. iOS haptics instead relies
+    // on native touch handling for the invisible switch over the board.
+    if (!this.haptics.overlay) for (const t of ['touchstart', 'touchmove', 'touchend'] as const) {
+      viewport.addEventListener(t, preventBoardTouchDefault, { passive: false });
+    }
     window.addEventListener('resize', () => this.layout());
   }
 
@@ -321,7 +324,7 @@ export class Board {
   // -- gestures ----------------------------------------------------------------
 
   private onDown(e: PointerEvent): void {
-    if (!this.ps || this.reveal || (e.target as Element).closest('#board-reset, #board-rotate')) return;
+    if (!this.ps || this.reveal || isBoardViewportControl(e.target)) return;
     if (e.pointerType === 'touch') {
       // A third finger must not replace either of the two tracked fingers.
       if (this.touchPoints.size >= 2) return;
