@@ -254,8 +254,8 @@ button.primary {
   -webkit-touch-callout: none;
 }
 
-/* Shown only when zoomed so normal gameplay remains uncluttered. */
-#board-reset {
+/* View controls stay outside the canvas and never change puzzle input. */
+#board-reset, #board-rotate {
   position: absolute;
   right: 8px;
   bottom: 8px;
@@ -274,6 +274,24 @@ button.primary {
 }
 
 #board-reset[hidden] { display: none; }
+
+#board-rotate {
+  top: 8px;
+  bottom: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+
+#board-rotation-angle {
+  font-size: 11px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
 
 canvas#board {
   display: block;
