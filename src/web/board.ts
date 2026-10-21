@@ -3,7 +3,7 @@ import { parseKey, type ShapeKey } from '../engine/shape.ts';
 import type { Puzzle } from '../engine/types.ts';
 import type { Hint, Mistake } from './analysis.ts';
 import { Haptics } from './haptics.ts';
-import { pointOnBoard, sizeBoard } from './boardGeometry.ts';
+import { boardRotationTransform, pointOnRotatedBoard, sizeBoard, type BoardRotation } from './boardGeometry.ts';
 import { borderEdgesOnStroke, nearestBorder, paintCellsOnStroke, type BoardPoint } from './boardStroke.ts';
 import {
   clampBoardView, defaultBoardView, movePinch, startPinch,
@@ -27,6 +27,15 @@ const REDUCED_MOTION = typeof matchMedia === 'function' && matchMedia('(prefers-
 const ROSE_GLYPHS = ['○', '△', '□', '☆', '◇', '♡'];
 const LONG_PRESS_MS = 450;
 const MOVE_SLOP = 8;
+const BOARD_ROTATION_KEY = 'pbp:boardRotation';
+
+function savedBoardRotation(): BoardRotation {
+  try {
+    const value = Number(localStorage.getItem(BOARD_ROTATION_KEY));
+    if (value === 0 || value === 90 || value === 180 || value === 270) return value;
+  } catch { /* Storage may be unavailable in a private browser. */ }
+  return 0;
+}
 /** a second tap on a just-cleared painted cell within this time walls its region instead */
 const DOUBLE_TAP_MS = 320;
 /** Border band width, as a fraction of the cell size on each side of an edge (was 0.2; halved). */
@@ -65,6 +74,9 @@ export class Board {
   /** the stone wall around the window (#board-wrap) */
   private wrap: HTMLElement;
   private resetViewButton: HTMLButtonElement;
+  private rotateButton: HTMLButtonElement;
+  private rotationAngle: HTMLElement;
+  private rotation: BoardRotation = savedBoardRotation();
   private haptics: Haptics;
   private ctx: CanvasRenderingContext2D;
   puzzle: Puzzle | null = null;
@@ -133,6 +145,9 @@ export class Board {
     this.viewport = this.stage.parentElement!;
     this.wrap = this.viewport.parentElement!;
     this.resetViewButton = this.viewport.querySelector<HTMLButtonElement>('#board-reset')!;
+    this.rotateButton = this.viewport.querySelector<HTMLButtonElement>('#board-rotate')!;
+    this.rotationAngle = this.rotateButton.querySelector<HTMLElement>('#board-rotation-angle')!;
+    this.rotationAngle.textContent = `${this.rotation}°`;
     this.ctx = canvas.getContext('2d')!;
     this.cb = cb;
     this.haptics = new Haptics(this.stage, canvas);
@@ -145,6 +160,7 @@ export class Board {
     viewport.addEventListener('pointercancel', (e) => this.onCancel(e));
     viewport.addEventListener('contextmenu', (e) => e.preventDefault());
     this.resetViewButton.addEventListener('click', () => this.resetView());
+    this.rotateButton.addEventListener('click', () => this.rotateBoard());
     // Block the browser's own touch gestures on the board (pinch zoom, double-tap
     // zoom, long-press magnifier/selection); pointer events still fire. With the
     // haptic switch in place the touches must keep their default handling (that
@@ -192,7 +208,7 @@ export class Board {
     // its actual inner dimensions instead of estimating the occupied space.
     const size = sizeBoard(
       this.grid.w, this.grid.h,
-      this.viewport.clientWidth, this.viewport.clientHeight, this.pad,
+      this.viewport.clientWidth, this.viewport.clientHeight, this.pad, this.rotation,
     );
     this.cell = size.cell;
     this.logicalWidth = size.logicalWidth;
@@ -201,17 +217,35 @@ export class Board {
     // The CSS size retains logical aspect and input mapping, independently of DPR.
     this.canvas.style.width = `${size.displayWidth}px`;
     this.canvas.style.height = `${size.displayHeight}px`;
-    const width = Math.round(size.logicalWidth * dpr);
-    const height = Math.round(size.logicalHeight * dpr);
+    const quarterTurn = this.rotation === 90 || this.rotation === 270;
+    const width = Math.round((quarterTurn ? size.logicalHeight : size.logicalWidth) * dpr);
+    const height = Math.round((quarterTurn ? size.logicalWidth : size.logicalHeight) * dpr);
     // Assigning canvas.width/height clears and reallocates its backing buffer.
     // Avoid doing so when a toolbar or completion status changes but its size does not.
     if (this.canvas.width !== width || this.canvas.height !== height) {
       this.canvas.width = width;
       this.canvas.height = height;
     }
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.ctx.setTransform(...boardRotationTransform(this.rotation, this.logicalWidth, this.logicalHeight, dpr));
     this.applyView();
     this.draw();
+  }
+
+  /** Clockwise quarter-turns change only the view, never the puzzle state. */
+  private rotateBoard(): void {
+    this.stopPainting();
+    this.touchPoints.clear();
+    this.pinch = null;
+    this.blockPainting = false;
+    this.lastErase = null;
+    this.rotation = ((this.rotation + 90) % 360) as BoardRotation;
+    this.rotationAngle.textContent = `${this.rotation}°`;
+    try {
+      localStorage.setItem(BOARD_ROTATION_KEY, String(this.rotation));
+    } catch { /* Rotating must work even without persistent storage. */ }
+    // A different aspect ratio needs a fresh fit, not the previous zoom/pan.
+    this.view = defaultBoardView();
+    this.layout();
   }
 
   /** Show the entire board again without changing the puzzle's marks. */
@@ -260,7 +294,8 @@ export class Board {
 
   private borderTolerance(): number {
     const scale = this.logicalWidth > 0
-      ? this.canvas.getBoundingClientRect().width / this.logicalWidth : 1;
+      ? this.canvas.getBoundingClientRect().width /
+        (this.rotation === 90 || this.rotation === 270 ? this.logicalHeight : this.logicalWidth) : 1;
     return Math.min(this.cell * 0.24, 11 / Math.max(0.1, scale));
   }
 
@@ -276,17 +311,17 @@ export class Board {
   }
 
   private pos(e: PointerEvent): [number, number] {
-    return pointOnBoard(
+    return pointOnRotatedBoard(
       e.clientX, e.clientY,
       this.canvas.getBoundingClientRect(),
-      this.logicalWidth, this.logicalHeight,
+      this.logicalWidth, this.logicalHeight, this.rotation,
     );
   }
 
   // -- gestures ----------------------------------------------------------------
 
   private onDown(e: PointerEvent): void {
-    if (!this.ps || this.reveal || (e.target as Element).closest('#board-reset')) return;
+    if (!this.ps || this.reveal || (e.target as Element).closest('#board-reset, #board-rotate')) return;
     if (e.pointerType === 'touch') {
       // A third finger must not replace either of the two tracked fingers.
       if (this.touchPoints.size >= 2) return;
@@ -642,7 +677,11 @@ export class Board {
     const s = this.cell;
     const pad = this.pad;
     const lit = this.reveal ? 0 : this.lit;
+    // Clear in device pixels: the board drawing transform may be rotated.
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.restore();
     if (!this.hatch) this.hatch = makeHatch(ctx);
     if (!this.grain) this.grain = makeGrain(ctx);
     const cellX = (c: number) => pad + (c % g.w) * s;
