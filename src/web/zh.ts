@@ -15,6 +15,7 @@ export const zh: Messages = {
   langSwitch: '한국어',
   langSwitchTitle: '切换为韩语',
   resetView: '重置棋盘缩放',
+  rotateBoard: '顺时针旋转棋盘 90°',
   pinchHelp: '双指缩放和平移棋盘，点击 ⤢ 恢复完整视图。',
   goalDesc: '按照规则，将窗户中的每一格填上彩色玻璃，或者画出所有区域之间的分界线。',
   close: '关闭',
