@@ -45,7 +45,7 @@ function section(title: string, content: string, cls: string): HTMLElement {
   return p;
 }
 
-function figure(scene: Scene, accessibleLabel: string): HTMLElement {
+function figure(scene: Scene, accessibleLabel: string, id: LessonId): HTMLElement {
   const fig = elt('figure','tip-example');
   fig.setAttribute('aria-label', accessibleLabel);
   const board = elt('div', 'tip-board');
@@ -63,8 +63,16 @@ function figure(scene: Scene, accessibleLabel: string): HTMLElement {
     else cell.classList.add('tip-cell-symbol');
     if (char === '#') cell.classList.add('tip-cell-blocked');
     if (focus.has(row + ',' + col)) cell.classList.add('tip-cell-focus');
-    if (walls.has(row + ',' + col + ',R')) cell.classList.add('tip-wall-right');
-    if (walls.has(row + ',' + col + ',D')) cell.classList.add('tip-wall-bottom');
+    // A/B region identities and 0/1 parity groups imply visible borders when adjacent.
+    const auto = id === 'parity' || id === 'border' || id === 'diagonal';
+    if (walls.has(row + ',' + col + ',R') ||
+        (auto && col+1 < width && /[AB01]/.test(char) && /[AB01]/.test(rows[row][col+1]) && char !== rows[row][col+1])) {
+      cell.classList.add('tip-wall-right');
+    }
+    if (walls.has(row + ',' + col + ',D') ||
+        (auto && row+1 < height && /[AB01]/.test(char) && /[AB01]/.test(rows[row+1][col]) && char !== rows[row+1][col])) {
+      cell.classList.add('tip-wall-bottom');
+    }
     if (opens.has(row + ',' + col + ',R')) cell.classList.add('tip-open-right');
     if (opens.has(row + ',' + col + ',D')) cell.classList.add('tip-open-bottom');
     board.append(cell);
@@ -141,7 +149,7 @@ export function renderTipGallery(container: HTMLElement, language: Lang, puzzle?
     function update(): void {
       const stage = states.get(lesson.id) || 0;
       const captions = [idea, premise, deduction];
-      exampleArea.replaceChildren(figure(SCENES[lesson.id][stage], title + ' — ' + (stage+1) + '/3'));
+      exampleArea.replaceChildren(figure(SCENES[lesson.id][stage], title + ' — ' + (stage+1) + '/3', lesson.id));
       explanation.textContent = captions[stage];
       prev.textContent = ui.previous;
       next.textContent = ui.next;
