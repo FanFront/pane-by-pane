@@ -12,25 +12,16 @@ import {
 } from './boardViewport.ts';
 import { HUES, NONE, PlayerState, WALL, huePool } from './model.ts';
 import { boardDevicePixelRatio, completionAnimationActive, COMPLETION_FRAME_MS } from './renderPerformance.ts';
+import { boardPalette, tintedPane } from './boardPalette.ts';
+import { getTheme } from './theme.ts';
 
-/** Canvas uses the same palette as the DOM; cache values to avoid style reads per frame. */
-let PLAYER_WALL = '#5b5560';
-let LEAD = '#1d1c21';
-let LEAD_LIGHT = 'rgba(255,255,255,0.28)';
-let CLEAR_GLASS = '#e4e9ef';
-let INK = '#17161a';
+/** Resolve once on startup / theme changes; never read styles in the render loop. */
+let palette = boardPalette('classic');
+let paintColors = HUES.map((hue) => tintedPane(hue, palette));
 
-/** Called during board setup and whenever the player changes appearance. */
 export function refreshBoardPalette(): void {
-  if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') return;
-  const css = getComputedStyle(document.documentElement);
-  const value = (name: string, fallback: string): string =>
-    css.getPropertyValue(name).trim() || fallback;
-  PLAYER_WALL = value('--board-player-wall', '#5b5560');
-  LEAD = value('--board-lead', '#1d1c21');
-  LEAD_LIGHT = value('--board-lead-light', 'rgba(255,255,255,0.28)');
-  CLEAR_GLASS = value('--board-clear-glass', '#e4e9ef');
-  INK = value('--board-ink', '#17161a');
+  palette = boardPalette(getTheme());
+  paintColors = HUES.map((hue) => tintedPane(hue, palette));
 }
 const CLUE_FONT = "'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif";
 const REDUCED_MOTION = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -720,7 +711,7 @@ export class Board {
     }
     for (const [id, b] of panes) {
       const painted = id > 0;
-      const base = painted ? HUES[ps.hue[id] ?? 0] : CLEAR_GLASS;
+      const base = painted ? (paintColors[ps.hue[id] ?? 0] ?? paintColors[0]) : palette.clearGlass;
       ctx.save();
       ctx.beginPath();
       for (const c of b.cells) ctx.rect(cellX(c), cellY(c), s, s);
@@ -733,8 +724,8 @@ export class Board {
         const cy = pad + ((b.y0 + b.y1 + 1) / 2) * s - s * 0.15;
         const r = Math.max(b.x1 - b.x0 + 1, b.y1 - b.y0 + 1) * s * 0.8;
         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        grad.addColorStop(0, `rgba(255,255,255,${0.3 + 0.25 * lit})`);
-        grad.addColorStop(0.55, `rgba(255,255,255,${0.08 + 0.1 * lit})`);
+        grad.addColorStop(0, `rgba(255,255,255,${palette.paintHighlightCenter + 0.25 * lit})`);
+        grad.addColorStop(0.55, `rgba(255,255,255,${palette.paintHighlightMid + 0.1 * lit})`);
         grad.addColorStop(1, 'rgba(255,255,255,0)');
         ctx.fillStyle = grad;
         ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r);
@@ -743,7 +734,7 @@ export class Board {
       } else {
         // clear glass: cool, with a faint sheen from the top-left
         const grad = ctx.createLinearGradient(pad + b.x0 * s, pad + b.y0 * s, pad + (b.x1 + 1) * s, pad + (b.y1 + 1) * s);
-        grad.addColorStop(0, 'rgba(255,255,255,0.7)');
+        grad.addColorStop(0, palette.emptySheen);
         grad.addColorStop(1, 'rgba(255,255,255,0)');
         ctx.fillStyle = grad;
         ctx.fillRect(pad + b.x0 * s, pad + b.y0 * s, (b.x1 - b.x0 + 1) * s, (b.y1 - b.y0 + 1) * s);
@@ -779,14 +770,15 @@ export class Board {
         }
       }
       if (this.areaCells?.includes(c)) {
-        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.fillStyle = palette.areaHighlight;
         ctx.fillRect(cellX(c), cellY(c), s, s);
       }
     }
 
     // cutting lines between cells whose border is undecided (they vanish when the window is done)
     if (lit < 1) {
-      ctx.strokeStyle = `rgba(30,25,40,${0.28 * (1 - lit)})`;
+      ctx.strokeStyle = palette.undecided;
+      ctx.globalAlpha = 1 - lit;
       ctx.lineWidth = 1;
       const dashes = s >= 56 ? 8 : s >= 40 ? 7 : 6;
       const unit = s / (dashes * 2 - 1);
@@ -799,6 +791,7 @@ export class Board {
         ctx.lineTo(x2, y2);
       }
       ctx.stroke();
+      ctx.globalAlpha = 1;
       ctx.setLineDash([]);
     }
 
@@ -921,7 +914,7 @@ export class Board {
           sx2 -= g2;
         }
       }
-      ctx.strokeStyle = bad ? '#7f1d1d' : wrong ? '#dc2626' : lit > 0 ? mix(PLAYER_WALL, LEAD, lit) : PLAYER_WALL;
+      ctx.strokeStyle = bad ? '#7f1d1d' : wrong ? '#dc2626' : lit > 0 ? mix(palette.playerWall, palette.lead, lit) : palette.playerWall;
       ctx.lineWidth = fixed ? 5 : wrong ? 7 : 3 + (leadW - 3) * lit;
       ctx.lineCap = fixed || lit > 0.5 ? 'square' : 'round';
       ctx.beginPath();
@@ -946,15 +939,15 @@ export class Board {
       const mx = (x1 + x2) / 2;
       const my = (y1 + y2) / 2;
       const r = s * 0.17;
-      ctx.fillStyle = '#fbf7ef';
-      ctx.strokeStyle = LEAD;
+      ctx.fillStyle = palette.markerFill;
+      ctx.strokeStyle = palette.markerOutline;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(mx, my, r, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
       if (clue.type === 'difference') {
-        ctx.fillStyle = INK;
+        ctx.fillStyle = palette.markerInk;
         ctx.font = `700 ${Math.round(r * 1.45)}px ${CLUE_FONT}`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -1006,14 +999,14 @@ export class Board {
       const cx = pad + clue.x * s;
       const cy = pad + clue.y * s;
       const r = s * 0.16;
-      ctx.fillStyle = '#2b2733';
-      ctx.strokeStyle = '#fbf7ef';
+      ctx.fillStyle = palette.towerFill;
+      ctx.strokeStyle = palette.towerOutline;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = '#fbf7ef';
+      ctx.fillStyle = palette.towerInk;
       ctx.font = `700 ${Math.round(r * 1.5)}px ${CLUE_FONT}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -1030,11 +1023,11 @@ export class Board {
       }
       const cx = pad + (sx / this.areaCells.length) * s;
       const cy = pad + (sy / this.areaCells.length) * s;
-      ctx.fillStyle = 'rgba(28,28,33,0.88)';
+      ctx.fillStyle = palette.counterFill;
       ctx.beginPath();
       ctx.arc(cx, cy, s * 0.42, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#fbf7ef';
+      ctx.fillStyle = palette.counterInk;
       ctx.font = `bold ${Math.round(s * 0.45)}px sans-serif`;
       ctx.fillText(String(this.areaCells.length), cx, cy + 1);
     }
@@ -1044,7 +1037,7 @@ export class Board {
   private strokeLead(segs: [number, number, number, number][], w: number): void {
     const ctx = this.ctx;
     ctx.lineCap = 'square';
-    ctx.strokeStyle = LEAD;
+    ctx.strokeStyle = palette.lead;
     ctx.lineWidth = w;
     ctx.beginPath();
     for (const [x1, y1, x2, y2] of segs) {
@@ -1052,7 +1045,7 @@ export class Board {
       ctx.lineTo(x2, y2);
     }
     ctx.stroke();
-    ctx.strokeStyle = LEAD_LIGHT;
+    ctx.strokeStyle = palette.leadHighlight;
     ctx.lineWidth = 1.2;
     ctx.lineCap = 'butt';
     ctx.beginPath();
@@ -1079,10 +1072,10 @@ export class Board {
     const py = this.pad + (y + 0.5) * this.cell + 1;
     ctx.font = font;
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.strokeStyle = palette.inkHalo;
     ctx.lineWidth = 3;
     ctx.strokeText(t, px, py);
-    ctx.fillStyle = INK;
+    ctx.fillStyle = palette.ink;
     ctx.fillText(t, px, py);
   }
 
@@ -1096,10 +1089,10 @@ export class Board {
     const cx = this.pad + (x + 0.5) * this.cell;
     const cy = this.pad + (y + 0.5) * this.cell;
     ctx.lineCap = 'square';
-    ctx.strokeStyle = 'rgba(23,22,26,0.28)';
+    ctx.strokeStyle = palette.palisadeGuide;
     ctx.lineWidth = 1;
     ctx.strokeRect(cx - half, cy - half, half * 2, half * 2);
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = palette.ink;
     ctx.lineWidth = Math.max(2.5, this.cell * 0.07);
     ctx.beginPath();
     const corners: [number, number][] = [[cx - half, cy - half], [cx + half, cy - half], [cx + half, cy + half], [cx - half, cy + half]];
@@ -1128,7 +1121,7 @@ export class Board {
     const unit = (this.cell * 0.62) / Math.max(w, h);
     const ox = this.pad + (x + 0.5) * this.cell - (w * unit) / 2;
     const oy = this.pad + (y + 0.5) * this.cell - (h * unit) / 2;
-    this.ctx.fillStyle = INK;
+    this.ctx.fillStyle = palette.ink;
     for (const [px, py] of pts) this.ctx.fillRect(ox + px * unit + 0.5, oy + py * unit + 0.5, unit - 1, unit - 1);
   }
 }
