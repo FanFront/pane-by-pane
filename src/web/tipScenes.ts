@@ -76,9 +76,9 @@ export const SCENES: Record<LessonId, LessonScenes> = {
     frame(v('..','..'),v('0,0,R','0,0,D','0,1,D'),v('1,0,R'),['1,0','1,1']),
   ],
   brickyCorner: [
-    frame(v('AB','CD'),v('0,0,R','0,0,D')),
-    frame(v('AB','CD'),v('0,0,R','0,0,D','0,1,D'),[],['1,1']),
-    frame(v('AB','CD'),v('0,0,R','0,0,D','0,1,D','1,0,R'),[],['1,1'],undefined,true),
+    frame(v('..','..'),v('0,0,R','0,0,D')),
+    frame(v('..','..'),v('0,0,R','0,0,D','0,1,D'),[],['1,1']),
+    frame(v('..','..'),v('0,0,R','0,0,D','0,1,D','1,0,R'),[],['1,1'],undefined,true),
   ],
   boxyBounds: [
     frame(v('A..','...','..A'),[],[],['0,0','2,2']),
@@ -97,8 +97,8 @@ export const SCENES: Record<LessonId, LessonScenes> = {
   ],
   compassCount: [
     frame(v('...','.⊕.','...'),[],[],['1,1']),
-    frame(v('A.A','.⊕.','A..'),[],[],['0,0','0,2','2,0']),
-    frame(v('A.A','.⊕.','A..'),[],[],['0,0','0,2','2,0']),
+    frame(v('AAA','A⊕A','AAA'),[],[],['0,0','0,2','2,0','2,2']),
+    frame(v('AAA','A⊕A','AAA'),[],[],['0,0','0,2','2,0','2,2']),
   ],
   roseSeparate: [
     frame(v('●●.','...'),[],[],['0,0','0,1']),
@@ -108,7 +108,7 @@ export const SCENES: Record<LessonId, LessonScenes> = {
   sizeChain: [
     frame(v('ABC'),v('0,0,R','0,1,R'),[],['0,0','0,1','0,2']),
     frame(v('ABC'),v('0,0,R','0,1,R'),[],['0,1','0,2']),
-    frame(v('321'),v('0,0,R','0,1,R'),[],['0,0']),
+    frame(v('ABC'),v('0,0,R','0,1,R'),[],['0,0']),
   ],
   combinedArea: [
     frame(v('AA.','AA.','...'),v('0,1,R','1,0,D','1,1,D'),[],['1,1']),
