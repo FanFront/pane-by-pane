@@ -13,15 +13,25 @@ import {
 import { HUES, NONE, PlayerState, WALL, huePool } from './model.ts';
 import { boardDevicePixelRatio, completionAnimationActive, COMPLETION_FRAME_MS } from './renderPerformance.ts';
 
-/** colour of borders drawn by the player: a graphite sketch line, unlike the dark lead of the window */
-const PLAYER_WALL = '#5b5560';
-/** lead came: fixed walls, the frame, and the player's borders once the window is done */
-const LEAD = '#1d1c21';
-const LEAD_LIGHT = 'rgba(255,255,255,0.28)';
-/** glass with no colour yet */
-const CLEAR_GLASS = '#e4e9ef';
-/** clue ink */
-const INK = '#17161a';
+/** Canvas uses the same palette as the DOM; cache values to avoid style reads per frame. */
+let PLAYER_WALL = '#5b5560';
+let LEAD = '#1d1c21';
+let LEAD_LIGHT = 'rgba(255,255,255,0.28)';
+let CLEAR_GLASS = '#e4e9ef';
+let INK = '#17161a';
+
+/** Called during board setup and whenever the player changes appearance. */
+export function refreshBoardPalette(): void {
+  if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') return;
+  const css = getComputedStyle(document.documentElement);
+  const value = (name: string, fallback: string): string =>
+    css.getPropertyValue(name).trim() || fallback;
+  PLAYER_WALL = value('--board-player-wall', '#5b5560');
+  LEAD = value('--board-lead', '#1d1c21');
+  LEAD_LIGHT = value('--board-lead-light', 'rgba(255,255,255,0.28)');
+  CLEAR_GLASS = value('--board-clear-glass', '#e4e9ef');
+  INK = value('--board-ink', '#17161a');
+}
 const CLUE_FONT = "'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif";
 const REDUCED_MOTION = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -150,6 +160,7 @@ export class Board {
     this.rotationAngle = this.rotateButton.querySelector<HTMLElement>('#board-rotation-angle')!;
     this.rotationAngle.textContent = `${this.rotation}°`;
     this.ctx = canvas.getContext('2d')!;
+    refreshBoardPalette();
     this.cb = cb;
     this.haptics = new Haptics(this.stage, canvas);
     // Listening and capturing on the viewport lets a second finger land in
