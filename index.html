@@ -13,6 +13,18 @@
     <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
     <meta name="description" content="A stained-glass region-partition puzzle: generator, logical solver and a touch-first player." />
     <title>pane by pane</title>
+    <!-- Restore the selected palette before CSS paints to avoid a bright flash on dark launches. -->
+    <script>
+      try {
+        const savedTheme = localStorage.getItem('pbp:theme');
+        if (savedTheme === 'modern' || savedTheme === 'dark') {
+          document.documentElement.dataset.theme = savedTheme;
+          document.documentElement.style.colorScheme = savedTheme === 'dark' ? 'dark' : 'light';
+          document.querySelector('meta[name="theme-color"]').content =
+            savedTheme === 'dark' ? '#101722' : '#f2f5fb';
+        }
+      } catch { /* Local storage may be disabled. */ }
+    </script>
     <link rel="stylesheet" href="./src/web/style.css" />
   </head>
   <body>
@@ -115,6 +127,24 @@
         </button>
       </div>
       <div class="settings-content">
+        <section class="appearance-settings" aria-labelledby="theme-title">
+          <h2 id="theme-title" class="section-title">外观主题</h2>
+          <div class="theme-options" role="group" aria-labelledby="theme-title">
+            <button type="button" class="theme-option" data-theme-choice="classic" aria-pressed="true">
+              <span class="theme-preview theme-preview-classic" aria-hidden="true"></span>
+              <span id="theme-classic-label">经典</span>
+            </button>
+            <button type="button" class="theme-option" data-theme-choice="modern" aria-pressed="false">
+              <span class="theme-preview theme-preview-modern" aria-hidden="true"></span>
+              <span id="theme-modern-label">现代</span>
+            </button>
+            <button type="button" class="theme-option" data-theme-choice="dark" aria-pressed="false">
+              <span class="theme-preview theme-preview-dark" aria-hidden="true"></span>
+              <span id="theme-dark-label">夜间</span>
+            </button>
+          </div>
+          <p id="theme-description" class="small muted">即时生效，并记住你的选择。</p>
+        </section>
         <section class="settings-group" aria-labelledby="settings-gameplay-heading">
           <h2 id="settings-gameplay-heading" class="section-title">Game options</h2>
           <button type="button" id="tips-from-settings" class="tip-entry" aria-haspopup="dialog" aria-controls="tips-dialog">入门技巧 · 奇偶 / 出口 / 连通</button>

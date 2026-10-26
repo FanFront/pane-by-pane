@@ -3,7 +3,7 @@ import { shapeName } from '../engine/shape.ts';
 import { RULE_KINDS, type Puzzle, type RuleKind } from '../engine/types.ts';
 import { ruleConflict, type GenerateOptions } from '../engine/generator/generate.ts';
 import { checkCompletion, findViolations, nextHint } from './analysis.ts';
-import { Board, shapeIcon, solutionView } from './board.ts';
+import { Board, refreshBoardPalette, shapeIcon, solutionView } from './board.ts';
 import { PlayerState, WALL, type PlayerCheckpoint } from './model.ts';
 import type { WorkerIn, WorkerOut } from './worker.ts';
 import { M, applyStatic, lang, setLang } from './i18n.ts';
@@ -16,7 +16,9 @@ import { formatStars } from './difficultyStars.ts';
 import { uniqueRuleClues } from './ruleHelp.ts';
 import { renderBeginnerTips } from './beginnerTips.ts';
 import { chooseBackAction, installAndroidBack, type CapacitorBridge } from './androidBack.ts';
+import { THEMES, getTheme, initTheme, setTheme } from './theme.ts';
 
+initTheme();
 applyStatic();
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -104,6 +106,25 @@ const board = new Board($<HTMLCanvasElement>('board'), {
     else refreshStatus();
   },
 });
+
+// A palette switch is purely visual: keep the current board, undo history and progress.
+const themeButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-theme-choice]')];
+function updateThemeButtons(): void {
+  for (const button of themeButtons) {
+    button.setAttribute('aria-pressed', String(button.dataset.themeChoice === getTheme()));
+  }
+}
+for (const button of themeButtons) {
+  button.addEventListener('click', () => {
+    const choice = button.dataset.themeChoice;
+    if (!THEMES.some((theme) => theme === choice)) return;
+    setTheme(choice as typeof THEMES[number]);
+    refreshBoardPalette();
+    board.draw();
+    updateThemeButtons();
+  });
+}
+updateThemeButtons();
 
 // -- options / URL -------------------------------------------------------------
 
@@ -338,6 +359,15 @@ function refreshPresetUi(): void {
   $('settings-entry').setAttribute('aria-label', $('settings-title').textContent || 'Settings');
   $('settings-entry').title = $('settings-title').textContent || 'Settings';
   $('settings-gameplay-heading').textContent = presetText('游玩选项', 'Play options', '게임 설정');
+  $('theme-title').textContent = presetText('外观主题', 'Appearance', '화면 테마');
+  $('theme-classic-label').textContent = presetText('经典', 'Classic', '클래식');
+  $('theme-modern-label').textContent = presetText('现代', 'Modern', '모던');
+  $('theme-dark-label').textContent = presetText('夜间', 'Dark', '다크');
+  $('theme-description').textContent = presetText(
+    '立即切换，无需重开关卡；下次启动保持选择。',
+    'Applies instantly without resetting the puzzle. Saved for next time.',
+    '퍼즐을 다시 시작하지 않고 즉시 적용되며 선택이 저장됩니다.',
+  );
   $('settings-error-label').textContent = presetText('错误提示', 'Show errors', '오류 표시');
   $('settings-close').setAttribute('aria-label', presetText('关闭设置', 'Close settings', '설정 닫기'));
   $('tips-title').textContent = presetText('推理技巧大全', 'Solving guide', '풀이 가이드');
