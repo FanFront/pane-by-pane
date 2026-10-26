@@ -13,6 +13,7 @@ import { organizeLevels, flattenedLevels, levelLocation, type LevelEntry, type L
 import { readLevelProgress, saveLevelProgress, completeLevel, chapterProgress } from './levelProgress.ts';
 import { restoredPuzzleArgs, type LastPuzzle } from './lastPuzzle.ts';
 import { formatStars } from './difficultyStars.ts';
+import { uniqueRuleClues } from './ruleHelp.ts';
 import { chooseBackAction, installAndroidBack, type CapacitorBridge } from './androidBack.ts';
 
 applyStatic();
@@ -607,7 +608,8 @@ function loadPuzzle(p: Puzzle, solution: Int32Array, stars: number, difficulty: 
   const kinds = new Set(p.clues.map((c) => c.type));
   if (p.walls?.length) add(M.rule.fixedWalls, M.desc.fixedWalls);
   if (kinds.has('areaNumber')) add(M.rule.areaNumber, M.desc.areaNumber);
-  for (const c of p.clues) {
+  // One explanation per rule kind, even when several cells carry the same clue.
+  for (const c of uniqueRuleClues(p.clues)) {
     if (c.type === 'range') {
       const lo = c.min;
       const hi = c.max;
@@ -623,11 +625,9 @@ function loadPuzzle(p: Puzzle, solution: Int32Array, stars: number, difficulty: 
     } else if (c.type === 'rose') {
       add(M.rule.rose, M.desc.rose(['○', '△', '□', '☆'].slice(0, c.symbolCount).join(' ')));
     } else if (c.type === 'fenceShape') {
-      add(presetText('旋转围栏', 'Rotatable fence', '회전 울타리'),
-        presetText('此格的边界形状允许旋转或翻转', 'Boundary pattern may rotate or flip', '경계 모양을 회전/반사 가능'));
+      add(M.rule.fenceShape, M.desc.fenceShape);
     } else if (c.type === 'compass') {
-      add(presetText('罗盘', 'Compass', '나침반'),
-        presetText('统计同一区域中上下左右的格子数', 'Count same-region cells above/below/left/right', '같은 영역의 상하좌우 칸 수'));
+      add(M.rule.compass, M.desc.compass);
     } else if (c.type === 'sizeSeparation') {
       add(M.rule.sizeSeparation, M.desc.sizeSeparation);
     } else if (c.type === 'solitude') {
@@ -687,8 +687,8 @@ function buildGoalBar(p: Puzzle, stars: number): void {
     else if (c.type === 'polyomino') specs.set('polyomino', () => chip(M.chip.polyomino));
     else if (c.type === 'gemini') specs.set('gemini', () => chip(M.chip.gemini));
     else if (c.type === 'delta') specs.set('delta', () => chip(M.chip.delta));
-    else if (c.type === 'fenceShape') specs.set('fenceShape', () => chip(presetText('旋转围栏', 'Fence', '울타리')));
-    else if (c.type === 'compass') specs.set('compass', () => chip(presetText('罗盘', 'Compass', '나침반')));
+    else if (c.type === 'fenceShape') specs.set('fenceShape', () => chip(M.chip.fenceShape));
+    else if (c.type === 'compass') specs.set('compass', () => chip(M.chip.compass));
     else if (c.type === 'sizeSeparation') specs.set('sizeSeparation', () => chip(M.chip.sizeSeparation));
     else if (c.type === 'solitude') specs.set('solitude', () => chip(M.chip.solitude));
     else if (c.type === 'boxy') specs.set('boxy', () => chip(M.chip.boxy));
