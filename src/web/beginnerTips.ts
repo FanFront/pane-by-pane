@@ -41,7 +41,7 @@ export const GUIDE: Record<Lang, Guide> = {
 };
 
 const EXAMPLES: Record<TipId, readonly string[]> = {
-  vertex: ['AABB', 'AABB', 'ABBB', 'ABBB'],
+  vertex: ['AB', 'CD'],
   parity: ['00000', '01110', '01010', '01110', '00000'],
   exit: ['AA..', 'AA..', '....', '....'],
   border: ['AAAB', 'AAAB', 'AABB', 'ABBB'],
@@ -68,7 +68,10 @@ function makeExample(id: TipId, label: string): HTMLElement {
       cell.className = 'tip-cell tip-cell-' + (value === '.' ? 'blank' : value);
       cell.textContent = id === 'exit' && x === 1 && y === 1 ? 'A→' : value === '.' ? '' : value;
       if (x < rows[0].length - 1 && value !== rows[y][x + 1] &&
-          !(id === 'exit' && x === 1 && y === 1)) cell.classList.add('tip-wall-right');
+          !(id === 'exit' && x === 1 && y === 1)) {
+        cell.classList.add('tip-wall-right');
+        if (id === 'vertex' && x === 0 && y === 1) cell.classList.add('tip-forced-wall');
+      }
       if (y < rows.length - 1 && value !== rows[y + 1][x]) cell.classList.add('tip-wall-bottom');
       board.append(cell);
     }
