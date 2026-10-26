@@ -51,6 +51,7 @@
       <div id="goal-stars" class="muted"></div>
       <p class="muted" data-i18n="goalDesc">규칙을 지켜 창의 모든 칸을 색유리로 채우거나, 모든 구역의 경계선을 그리세요.</p>
       <div id="rules-info"></div>
+      <button type="button" id="tips-from-goal" class="tip-entry" aria-haspopup="dialog" aria-controls="tips-dialog">入门技巧 · 奇偶 / 出口 / 连通</button>
       <div class="dialog-section" data-i18n="controls">조작법</div>
       <dl id="help-list">
         <dt data-i18n="ctl.0.0"></dt><dd data-i18n="ctl.0.1"></dd>
@@ -63,6 +64,15 @@
         <dt data-i18n="ctl.7.0"></dt><dd data-i18n="ctl.7.1"></dd>
       </dl>
       <p class="small muted" data-i18n="pinchHelp">双指缩放和平移棋盘，点击 ⤢ 恢复完整视图。</p>
+    </dialog>
+    <dialog id="tips-dialog" aria-labelledby="tips-title">
+      <div class="dialog-head">
+        <strong id="tips-title">入门技巧</strong>
+        <button type="button" id="tips-close" class="icon small-icon" aria-label="关闭技巧" title="关闭技巧">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
+      </div>
+      <div id="tips-content"></div>
     </dialog>
     <dialog id="reveal-dialog">
       <div class="dialog-head"><strong data-i18n="revealTitle">정답 보기</strong></div>
@@ -107,6 +117,7 @@
       <div class="settings-content">
         <section class="settings-group" aria-labelledby="settings-gameplay-heading">
           <h2 id="settings-gameplay-heading" class="section-title">Game options</h2>
+          <button type="button" id="tips-from-settings" class="tip-entry" aria-haspopup="dialog" aria-controls="tips-dialog">入门技巧 · 奇偶 / 出口 / 连通</button>
           <div class="settings-actions">
             <button type="button" id="clear" class="icon" data-i18n-title="clear" data-i18n-aria="clear">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16" /><path d="M9 7V4h6v3" /><path d="M6 7l1 13h10l1-13" /><path d="M10 11v6M14 11v6" /></svg>
