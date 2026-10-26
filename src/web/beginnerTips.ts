@@ -1,4 +1,6 @@
 import type { Lang } from './i18n.ts';
+import type { Puzzle } from '../engine/types.ts';
+import { renderTipGallery } from './tipGallery.ts';
 
 export type TipId = 'vertex' | 'parity' | 'exit' | 'border' | 'diagonal';
 type Tip = { id: TipId; title: string; idea: string; premise: string; deduction: string; warning: string; example: string };
@@ -92,45 +94,6 @@ function note(title: string, body: string, css: string): HTMLElement {
   return p;
 }
 
-export function renderBeginnerTips(container: HTMLElement, lang: Lang): void {
-  const guide = GUIDE[lang];
-  container.replaceChildren();
-  const intro = document.createElement('p');
-  intro.className = 'muted';
-  intro.textContent = guide.intro;
-  container.append(intro);
-  guide.tips.forEach((tip, index) => {
-    const details = document.createElement('details');
-    details.className = 'tip-card';
-    details.open = index === 0;
-    const summary = document.createElement('summary');
-    summary.textContent = tip.title;
-    details.append(summary);
-    const body = document.createElement('div');
-    body.className = 'tip-content';
-    const idea = document.createElement('p');
-    idea.textContent = tip.idea;
-    body.append(idea, makeExample(tip.id, tip.example),
-      note(guide.premise, tip.premise, ''),
-      note(guide.deduction, tip.deduction, 'tip-deduction'),
-      note(guide.warning, tip.warning, 'tip-warning'));
-    details.append(body);
-    container.append(details);
-  });
-  const sources = document.createElement('div');
-  sources.className = 'tip-sources';
-  const head = document.createElement('strong');
-  head.textContent = guide.sources;
-  sources.append(head);
-  const links = [
-    ['塞德莎 · 常用技巧', 'https://www.bilibili.com/video/BV1XAdJB7EgR/'],
-    ['塞德莎 · 环纹奇偶', 'https://www.bilibili.com/video/BV1CrQUBgECk/'],
-    ['Steam · Loopy & Bricky', 'https://steamcommunity.com/app/4160210/discussions/0/796714946157187940/'],
-  ];
-  for (const [name, url] of links) {
-    const a = document.createElement('a');
-    a.href = url; a.textContent = name; a.target = '_blank'; a.rel = 'noopener noreferrer';
-    sources.append(a);
-  }
-  container.append(sources);
+export function renderBeginnerTips(container: HTMLElement, lang: Lang, puzzle?: Puzzle): void {
+  renderTipGallery(container, lang, puzzle);
 }

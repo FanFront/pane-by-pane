@@ -44,6 +44,7 @@ renderBeginnerTips($('tips-content'), lang);
 let returnAfterTips: HTMLDialogElement | null = null;
 function openTips(from: HTMLDialogElement): void {
   if (tipsDialog.open) return;
+  renderBeginnerTips($('tips-content'), lang, current?.puzzle);
   from.close();
   returnAfterTips = from;
   tipsDialog.showModal();
@@ -339,11 +340,11 @@ function refreshPresetUi(): void {
   $('settings-gameplay-heading').textContent = presetText('游玩选项', 'Play options', '게임 설정');
   $('settings-error-label').textContent = presetText('错误提示', 'Show errors', '오류 표시');
   $('settings-close').setAttribute('aria-label', presetText('关闭设置', 'Close settings', '설정 닫기'));
-  $('tips-title').textContent = presetText('入门技巧', 'Solving tips', '풀이 요령');
+  $('tips-title').textContent = presetText('推理技巧大全', 'Solving guide', '풀이 가이드');
   $('tips-close').setAttribute('aria-label', presetText('关闭技巧', 'Close tips', '팁 닫기'));
   $('tips-close').title = $('tips-close').getAttribute('aria-label') || '';
   for (const entry of [$('tips-from-goal'), $('tips-from-settings')]) {
-    entry.textContent = presetText('入门技巧 · 奇偶 / 出口 / 连通', 'Solving tips · parity / exits / connectivity', '풀이 요령 · 홀짝 / 출구 / 연결');
+    entry.textContent = presetText('推理技巧大全 · 分步演示', 'Solving guide · step-by-step', '풀이 가이드 · 단계별 예시');
   }
   $('levels-title').textContent = presetText('关卡选择', 'Select a level', '레벨 선택');
   $('levels-back').textContent = presetText('← 章节', '← Chapters', '← 챕터');
