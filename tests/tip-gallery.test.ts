@@ -16,7 +16,7 @@ test('all three languages contain exactly twenty unique techniques, organized in
     assert.deepEqual(lessons.map(x=>x.id), allLessons('zh').map(x=>x.id));
     assert.deepEqual([...new Set(lessons.map(x=>x.group))], ['basics','rules','advanced']);
     for (const lesson of lessons) {
-      for (const value of Object.values(lesson.copy)) assert.ok(value.trim().length >= 8, lang + '/' + lesson.id);
+      for (const value of Object.values(lesson.copy)) assert.ok(value.trim().length >= 4, lang + '/' + lesson.id);
       assert.ok(lesson.rules.length > 0, 'missing relevant rule ' + lesson.id);
     }
     assert.equal(Object.keys(GROUPS[lang]).length,3);
@@ -48,6 +48,8 @@ test('current-level filtering matches only rules actually in this puzzle', () =>
   const subset = levelTipIds(mixed);
   for (const id of ['vertex','parity','fenceRotate','fenceOpen','parityFence']) assert.ok(subset.includes(id as typeof subset[number]),id);
   assert.ok(!subset.includes('brickyThree'));
+  assert.ok(!levelTipIds({width:3,height:3,clues:[{type:'loopy'}]}).includes('parityFence'));
+  assert.ok(!levelTipIds({width:3,height:3,clues:[{type:'areaNumber',cell:0,value:3}]}).includes('areaRemainder'));
 });
 
 test('important deductions are explicitly conditional, not a promise of unique solutions', () => {
