@@ -14,6 +14,7 @@ import { readLevelProgress, saveLevelProgress, completeLevel, chapterProgress } 
 import { restoredPuzzleArgs, type LastPuzzle } from './lastPuzzle.ts';
 import { formatStars } from './difficultyStars.ts';
 import { uniqueRuleClues } from './ruleHelp.ts';
+import { renderBeginnerTips } from './beginnerTips.ts';
 import { chooseBackAction, installAndroidBack, type CapacitorBridge } from './androidBack.ts';
 
 applyStatic();
@@ -37,6 +38,28 @@ const revealDialog = $<HTMLDialogElement>('reveal-dialog');
 const revealBtn = $<HTMLButtonElement>('reveal');
 const warnDialog = $<HTMLDialogElement>('warn-dialog');
 const settingsDialog = $<HTMLDialogElement>('settings-dialog');
+const tipsDialog = $<HTMLDialogElement>('tips-dialog');
+renderBeginnerTips($('tips-content'), lang);
+
+let returnAfterTips: HTMLDialogElement | null = null;
+function openTips(from: HTMLDialogElement): void {
+  if (tipsDialog.open) return;
+  from.close();
+  returnAfterTips = from;
+  tipsDialog.showModal();
+}
+$('tips-from-goal').addEventListener('click', () => openTips(goalDialog));
+$('tips-from-settings').addEventListener('click', () => openTips(settingsDialog));
+$('tips-close').addEventListener('click', () => tipsDialog.close());
+tipsDialog.addEventListener('click', (event) => {
+  if (event.target === tipsDialog) tipsDialog.close();
+});
+// Also handles Escape and the Android Back button. Restore the previous dialog.
+tipsDialog.addEventListener('close', () => {
+  const previous = returnAfterTips;
+  returnAfterTips = null;
+  if (previous && (previous !== goalDialog || current)) previous.showModal();
+});
 
 // The board keeps only playing controls. All infrequent actions live in Settings.
 $('settings-entry').addEventListener('click', () => {
@@ -316,6 +339,12 @@ function refreshPresetUi(): void {
   $('settings-gameplay-heading').textContent = presetText('游玩选项', 'Play options', '게임 설정');
   $('settings-error-label').textContent = presetText('错误提示', 'Show errors', '오류 표시');
   $('settings-close').setAttribute('aria-label', presetText('关闭设置', 'Close settings', '설정 닫기'));
+  $('tips-title').textContent = presetText('入门技巧', 'Solving tips', '풀이 요령');
+  $('tips-close').setAttribute('aria-label', presetText('关闭技巧', 'Close tips', '팁 닫기'));
+  $('tips-close').title = $('tips-close').getAttribute('aria-label') || '';
+  for (const entry of [$('tips-from-goal'), $('tips-from-settings')]) {
+    entry.textContent = presetText('入门技巧 · 奇偶 / 出口 / 连通', 'Solving tips · parity / exits / connectivity', '풀이 요령 · 홀짝 / 출구 / 연결');
+  }
   $('levels-title').textContent = presetText('关卡选择', 'Select a level', '레벨 선택');
   $('levels-back').textContent = presetText('← 章节', '← Chapters', '← 챕터');
   $('levels-legend').textContent = presetText('✓ 已完成 · ○ 未完成 · ◆ 当前关卡', '✓ Completed · ○ Not completed · ◆ Current', '✓ 완료 · ○ 미완료 · ◆ 현재');
