@@ -57,8 +57,8 @@ export const SCENES: Record<LessonId, LessonScenes> = {
   ],
   areaRemainder: [
     frame(v('....','....'),[],[],['0,0','1,3']),
-    frame(v('3333','3333'),[],[],['0,0','1,3']),
-    frame(v('3333','3333'),[],[],['0,0','1,3'],undefined,true),
+    frame(v('....','....'),[],[],['0,0','1,3']),
+    frame(v('....','....'),[],[],['0,0','1,3'],undefined,true),
   ],
   fenceRotate: [
     frame(v('...','.◇.','...'),[],[],['1,1']),
@@ -93,7 +93,7 @@ export const SCENES: Record<LessonId, LessonScenes> = {
   towerExtreme: [
     frame(v('..','..'),[],[],[],'1'),
     frame(v('AA','AA'),[],[],['0,0','1,1'],'1'),
-    frame(v('AA','AA'),[],v('0,0,R','0,0,D','0,1,D','1,0,R'),['0,0','1,1'],'1'),
+    frame(v('AB','CD'),v('0,0,R','0,0,D','0,1,D','1,0,R'),[],['0,0','1,1'],'4'),
   ],
   compassCount: [
     frame(v('...','.⊕.','...'),[],[],['1,1']),
@@ -130,7 +130,7 @@ export function validateScenes(): boolean {
     const cells = (scene.focus || []).map(x => x.split(',').map(Number));
     if (cells.some(([r,c]) => r < 0 || c < 0 || r >= rows.length || c >= rows[0].length)) return false;
     for (const e of [...(scene.walls || []), ...(scene.open || [])]) {
-      const match = /^(\\d+),(\\d+),([RD])$/.exec(e);
+      const match = /^(\d+),(\d+),([RD])$/.exec(e);
       if (!match) return false;
       const r = Number(match[1]), c = Number(match[2]);
       if (r < 0 || c < 0 || r >= rows.length || c >= rows[0].length ||
