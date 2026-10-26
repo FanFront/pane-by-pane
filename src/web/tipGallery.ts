@@ -20,10 +20,16 @@ export function allLessons(language: Lang): Lesson[] {
   return [...old, ...next].sort((a,b) => rank[a.group] - rank[b.group]);
 }
 
-export function levelTipIds(puzzle: Puzzle): LessonId[] {
+function relevant(tip: Lesson, puzzle: Puzzle): boolean {
   const kinds = new Set<RuleKind>(puzzle.clues.map(c => c.type));
-  const matches = allLessons('zh').filter(tip => tip.rules.some(rule => kinds.has(rule)));
-  return matches.map(tip => tip.id);
+  if (tip.id === 'parityFence') return kinds.has('loopy') && kinds.has('fenceShape');
+  // Only a global exact-area clue makes the division argument unconditional.
+  if (tip.id === 'areaRemainder') return puzzle.clues.some(c => c.type === 'range' && c.min !== undefined && c.min === c.max);
+  return tip.rules.some(rule => kinds.has(rule));
+}
+
+export function levelTipIds(puzzle: Puzzle): LessonId[] {
+  return allLessons('zh').filter(tip => relevant(tip,puzzle)).map(tip => tip.id);
 }
 
 function elt<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', value = ''): HTMLElementTagNameMap[K] {
@@ -80,7 +86,7 @@ export function renderTipGallery(container: HTMLElement, language: Lang, puzzle?
   const ui = TOOL_LABELS[language];
   const groups = GROUPS[language];
   const lessons = allLessons(language);
-  let mode: Mode = 'all';
+  let mode: Mode = puzzle ? 'relevant' : 'all';
   let filter: GroupFilter = 'all';
   const states = new Map<LessonId, number>();
   container.replaceChildren();
@@ -88,6 +94,11 @@ export function renderTipGallery(container: HTMLElement, language: Lang, puzzle?
   container.append(
     elt('p', 'muted', GUIDE[language].intro),
     elt('p', 'tip-guidance', ui.note),
+    elt('p', 'tip-legend', language === 'zh'
+      ? '图例：深色实线＝边界｜绿色虚线＝确定连通｜橙框＝关注位置｜红叉＝矛盾'
+      : language === 'ko'
+        ? '범례: 진한 실선=경계｜초록 점선=연결｜주황 테두리=주목｜빨간 X=모순'
+        : 'Legend: dark line = border | green dash = join | orange = focus | red X = contradiction'),
   );
 
   const bar = elt('div','tip-filter-bar');
@@ -158,9 +169,9 @@ export function renderTipGallery(container: HTMLElement, language: Lang, puzzle?
       ...(['basics','rules','advanced'] as TipGroup[]).map(group =>
         button(groups[group],filter === group,()=> { filter = group; repaint(); })),
     );
-    const kinds = new Set<RuleKind>(puzzle?.clues.map(c=>c.type) ?? []);
+    const relevantIds = new Set(puzzle ? levelTipIds(puzzle) : []);
     const chosen = lessons.filter(tip => (filter === 'all' || tip.group === filter) &&
-      (mode === 'all' || tip.rules.some(rule=>kinds.has(rule))));
+      (mode === 'all' || relevantIds.has(tip.id)));
     counter.textContent = language === 'zh' ? '共 ' + chosen.length + ' 项 · 点击标题展开 · 逐步查看示意' :
       language === 'ko' ? chosen.length + '개 · 제목을 눌러 펼친 뒤 단계별로 보기' :
       chosen.length + ' techniques · Open a title and advance step by step';
