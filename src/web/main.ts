@@ -13,6 +13,7 @@ import { organizeLevels, flattenedLevels, levelLocation, type LevelEntry, type L
 import { readLevelProgress, saveLevelProgress, completeLevel, chapterProgress } from './levelProgress.ts';
 import { restoredPuzzleArgs, type LastPuzzle } from './lastPuzzle.ts';
 import { formatStars } from './difficultyStars.ts';
+import { COMMUNITY_GROUPS, COMMUNITY_PICKS, workshopUrl } from './communityCatalog.ts';
 import { uniqueRuleClues } from './ruleHelp.ts';
 import { renderBeginnerTips } from './beginnerTips.ts';
 import { chooseBackAction, installAndroidBack, type CapacitorBridge } from './androidBack.ts';
@@ -283,11 +284,69 @@ const presetStatus = $('preset-status');
 const presetPrev = $<HTMLButtonElement>('preset-prev');
 const presetNext = $<HTMLButtonElement>('preset-next');
 const presetFile = $<HTMLInputElement>('preset-file');
+const communityFile = $<HTMLInputElement>('community-file');
+const communityFilter = $<HTMLInputElement>('community-filter');
+let levelView: 'levels' | 'community' = 'levels';
 let selectedZone = '';
 let selectedChapter: string | null = null;
 
 function presetText(zh: string, en: string, ko: string): string {
   return lang === 'zh' ? zh : lang === 'ko' ? ko : en;
+}
+
+/** Curated Workshop links are discovery-only; they are never counted as playable levels. */
+function renderCommunityBrowser(): void {
+  const results = $('community-results');
+  results.replaceChildren();
+  const query = communityFilter.value.trim().toLocaleLowerCase();
+  let total = 0;
+  for (const group of COMMUNITY_GROUPS) {
+    const items = COMMUNITY_PICKS.filter((pick) => pick.category === group.id &&
+      (pick.title + ' ' + pick.creator + ' ' + pick.description).toLocaleLowerCase().includes(query));
+    if (!items.length) continue;
+    total += items.length;
+    const section = document.createElement('section');
+    section.className = 'community-group';
+    const heading = document.createElement('h3');
+    heading.textContent = presetText(group.zh, group.en, group.ko) + ' (' + items.length + ')';
+    section.append(heading);
+    for (const pick of items) {
+      const card = document.createElement('article');
+      card.className = 'community-card';
+      const details = document.createElement('div');
+      details.className = 'community-card-details';
+      const title = document.createElement('strong');
+      title.textContent = pick.title;
+      const creator = document.createElement('span');
+      creator.className = 'small muted';
+      creator.textContent = presetText('作者：', 'by ', '제작: ') + pick.creator;
+      const description = document.createElement('p');
+      description.className = 'small muted';
+      description.textContent = pick.description;
+      details.append(title, creator, description);
+      const link = document.createElement('a');
+      link.className = 'community-external-link';
+      link.href = workshopUrl(pick);
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = presetText('在 Steam 查看 ↗', 'View on Steam ↗', 'Steam에서 보기 ↗');
+      link.setAttribute('aria-label', pick.title + ' — ' + link.textContent);
+      card.append(details, link);
+      section.append(card);
+    }
+    results.append(section);
+  }
+  if (!total) {
+    const empty = document.createElement('p');
+    empty.className = 'small muted';
+    empty.textContent = presetText('没有匹配的作品', 'No matching picks', '검색 결과가 없습니다');
+    results.append(empty);
+  }
+  $('community-match-count').textContent = presetText(
+    '展示 ' + total + ' / ' + COMMUNITY_PICKS.length + ' 个社区作品',
+    'Showing ' + total + ' of ' + COMMUNITY_PICKS.length + ' community picks',
+    COMMUNITY_PICKS.length + '개 중 ' + total + '개 표시',
+  );
 }
 
 /** Hypothesis marks remain in memory until accepted. Leaving a level drops them. */
@@ -381,6 +440,21 @@ function refreshPresetUi(): void {
   $('levels-legend').textContent = presetText('✓ 已完成 · ○ 未完成 · ◆ 当前关卡', '✓ Completed · ○ Not completed · ◆ Current', '✓ 완료 · ○ 미완료 · ◆ 현재');
   $('preset-open').textContent = presetText('选择 Zone / 章节 / 关卡', 'Browse zones / chapters / levels', '구역 / 챕터 / 레벨 선택');
   $('preset-import-label').textContent = presetText('导入本地 JSON 关卡包', 'Import a local JSON pack', '로컬 JSON 퍼즐 팩 가져오기');
+  $('levels-view-builtins').textContent = presetText('可玩关卡', 'Playable levels', '플레이 가능');
+  $('levels-view-community').textContent = presetText('社区精选 · 20', 'Workshop picks · 20', '워크숍 추천 · 20');
+  $('community-intro').textContent = presetText(
+    '精选 20 个真实的 Glimmith 玩家作品，点击查看作者的 Steam 创意工坊页面。此列表不包含可直接游玩的关卡数据。',
+    'Explore 20 genuine Glimmith Workshop creations. Links open their creators\' Steam pages; puzzle files are not bundled.',
+    '실제 Glimmith 워크숍 작품 20개를 소개합니다. 링크로 Steam 창작마당에서 확인할 수 있으며 퍼즐 파일은 포함되지 않습니다.',
+  );
+  $('community-search-label').textContent = presetText('搜索作品或作者', 'Search titles or creators', '제목 또는 제작자 검색');
+  communityFilter.placeholder = presetText('搜索 20 个作品…', 'Search 20 picks…', '20개 작품 검색…');
+  $('community-import-label').textContent = presetText('导入兼容的 JSON 关卡包', 'Import a compatible JSON pack', '호환 JSON 퍼즐 팩 가져오기');
+  $('community-import-note').textContent = presetText(
+    'Steam 订阅并不会自动导入这里。仅可导入获得授权且已转换为 Pane-by-Pane 格式的 JSON。',
+    'Steam subscriptions do not import into Pane-by-Pane. Only compatible JSON with permission to use the puzzle data can be imported.',
+    'Steam 구독은 자동으로 가져오지 않습니다. 사용 권한을 얻은 호환 JSON 퍼즐만 가져오세요.',
+  );
   $('generator-heading').textContent = presetText('高级工具：随机生成关卡', 'Advanced: Generate random puzzles', '고급: 무작위 퍼즐 만들기');
   presetPrev.textContent = presetText('← 上一关', '← Previous', '← 이전');
   presetNext.textContent = presetText('下一关 →', 'Next →', '다음 →');
@@ -394,6 +468,15 @@ function refreshPresetUi(): void {
 }
 
 function renderLevelBrowser(): void {
+  const community = levelView === 'community';
+  $('levels-view-builtins').setAttribute('aria-pressed', String(!community));
+  $('levels-view-community').setAttribute('aria-pressed', String(community));
+  $('level-bundled-panel').hidden = community;
+  $('community-panel').hidden = !community;
+  if (community) {
+    renderCommunityBrowser();
+    return;
+  }
   const zoneButtons = $('level-zones');
   const chapterList = $('level-chapters');
   const tiles = $('level-grid');
@@ -516,6 +599,7 @@ function openLevelBrowser(): void {
   const key = current?.presetKey ?? progress.recent;
   const entry = presetEntries.find((e) => e.key === key);
   if (entry) {
+    levelView = 'levels';
     const location = levelLocation(entry);
     selectedZone = location.zone;
     selectedChapter = `${location.zone}/${location.chapter}`;
@@ -546,6 +630,15 @@ function playPreset(index: number): void {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+$('levels-view-builtins').addEventListener('click', () => {
+  levelView = 'levels';
+  renderLevelBrowser();
+});
+$('levels-view-community').addEventListener('click', () => {
+  levelView = 'community';
+  renderLevelBrowser();
+});
+communityFilter.addEventListener('input', renderCommunityBrowser);
 $('levels-entry').addEventListener('click', openLevelBrowser);
 $('preset-open').addEventListener('click', openLevelBrowser);
 $('levels-close').addEventListener('click', () => levelsDialog.close());
@@ -566,8 +659,8 @@ levelsDialog.addEventListener('cancel', (event) => {
 });
 presetPrev.addEventListener('click', () => playPreset(presetEntries.findIndex((e) => e.key === current?.presetKey) - 1));
 presetNext.addEventListener('click', () => playPreset(presetEntries.findIndex((e) => e.key === current?.presetKey) + 1));
-presetFile.addEventListener('change', async () => {
-  const file = presetFile.files?.[0];
+async function importLocalPack(input: HTMLInputElement): Promise<void> {
+  const file = input.files?.[0];
   if (!file) return;
   try {
     if (file.size > 20 * 1024 * 1024) throw new Error('JSON file exceeds 20 MiB');
@@ -575,18 +668,23 @@ presetFile.addEventListener('change', async () => {
     await savePersonalPack(pack);
     personalPack = pack;
     rebuildPresetCatalog();
+    levelView = 'levels';
+    selectedZone = 'custom:personal';
+    selectedChapter = null;
     refreshPresetUi();
     presetStatus.textContent = presetText(
-      `已导入并离线保存 ${pack.levels.length} 关`,
-      `Imported and saved ${pack.levels.length} puzzles offline`,
-      `${pack.levels.length}개 퍼즐을 오프라인에 저장했습니다`,
+      '已导入并离线保存 ' + pack.levels.length + ' 关',
+      'Imported and saved ' + pack.levels.length + ' puzzles offline',
+      pack.levels.length + '개 퍼즐을 오프라인에 저장했습니다',
     );
   } catch (err) {
     warn(presetText('导入失败：', 'Import failed: ', '가져오기 실패: ') + (err instanceof Error ? err.message : String(err)));
   } finally {
-    presetFile.value = '';
+    input.value = '';
   }
-});
+}
+presetFile.addEventListener('change', () => void importLocalPack(presetFile));
+communityFile.addEventListener('change', () => void importLocalPack(communityFile));
 
 async function initPresets(openOnFirstVisit = false): Promise<void> {
   try {

@@ -36,6 +36,20 @@ The **Levels** button opens a chapter browser instead of a 1,200+ item dropdown.
 
 [关卡入口与通关存档说明（中文）](docs/LEVELS.zh-CN.md)
 
+## Community Workshop picks
+
+**Levels → Workshop picks** includes 20 hand-picked, creator-attributed
+community submissions (Favorites, Logic Challenges, Funny & Artistic). Search
+by title or author and follow links to the corresponding Steam Workshop pages.
+
+**These are external discoveries, not playable bundled Workshop puzzles.**
+Steam subscriptions do not automatically work in Pane-by-Pane, and Workshop
+files have not been redistributed. The picker also accepts locally obtained,
+authorized **Pane-by-Pane JSON** packs, validated and saved offline; those
+imported levels appear under Playable levels with normal completion tracking.
+
+See [Community Workshop collection and import notes](docs/COMMUNITY_COLLECTION.md).
+
 ## Built-in Glimmith puzzles
 
 The Android and GitHub Pages builds pull the [Betaller Glimmith puzzle corpus](https://github.com/Betaller/SolverOfTheArtisanOfGlimmith/tree/main/puzzles) during packaging and convert its official JSON puzzle/answer pairs to playable offline levels. At the verified upstream revision, **1,229 of 1,231** official-zone puzzle files were usable; two have no matching answer. The bundled puzzles appear directly in the **Preset puzzles** menu, with no JSON import step and no internet connection needed while playing.

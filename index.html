@@ -99,6 +99,11 @@
         <strong id="levels-title">选择关卡</strong>
         <button type="button" id="levels-close" class="small-icon" aria-label="Close">✕</button>
       </div>
+      <div class="level-mode-switch" role="group" aria-label="Level collections">
+        <button type="button" id="levels-view-builtins" aria-pressed="true">Playable levels</button>
+        <button type="button" id="levels-view-community" aria-pressed="false">Workshop picks · 20</button>
+      </div>
+      <div id="level-bundled-panel">
       <p id="levels-total" class="small muted" role="status"></p>
       <div id="level-zones" class="level-zones" role="group" aria-label="Zones"></div>
       <div class="level-browser-head">
@@ -110,6 +115,23 @@
       <div id="chapter-complete" class="chapter-complete" hidden role="status"></div>
       <div id="level-grid" class="level-grid" hidden></div>
       <p class="small muted" id="levels-legend">✓ 已完成 · ○ 未完成</p>
+      </div>
+      <section id="community-panel" class="community-panel" hidden aria-label="Community Workshop picks">
+        <p id="community-intro" class="small muted">Twenty curated Steam Workshop links. No puzzle files are bundled.</p>
+        <label class="community-search">
+          <span id="community-search-label">Search titles or creators</span>
+          <input type="search" id="community-filter" autocomplete="off" placeholder="Search 20 picks…" />
+        </label>
+        <p id="community-match-count" class="small muted" role="status"></p>
+        <div id="community-results"></div>
+        <div class="community-import">
+          <label class="community-import-button" for="community-file">
+            <span id="community-import-label">Import a compatible JSON pack</span>
+            <input type="file" id="community-file" accept=".json,application/json" />
+          </label>
+          <p id="community-import-note" class="small muted">Workshop subscriptions cannot be loaded automatically. Import only compatible, authorized JSON.</p>
+        </div>
+      </section>
     </dialog>
     <dialog id="warn-dialog">
       <div class="dialog-head"><strong id="warn-title" data-i18n="warnTitle">창을 만들 수 없습니다</strong></div>
