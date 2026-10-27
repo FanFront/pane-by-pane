@@ -325,6 +325,112 @@ export class PlayerState {
     return freeHue(used, corner) ?? Math.floor(Math.random() * HUES.length);
   }
 
+  /**
+   * Finish both visual notations after a partition has been verified as solved.
+   * Keep as many of the player's paint IDs/colours as possible, then fill the
+   * remaining cells and draw the missing boundaries. This is part of the
+   * winning gesture (no new undo snapshot is created here).
+   *
+   * The caller must pass labels from the *winning* notation, never an unverified
+   * solver/reveal result. Hole cells have negative labels.
+   */
+  finishSolvedPartition(labels: ArrayLike<number>): boolean {
+    const g = this.grid;
+    if (labels.length !== g.cells) throw new Error('Solved partition does not fit the board');
+
+    const regions = new Map<number, number[]>();
+    const counts = new Map<number, Map<number, number>>();
+    let nextId = this.nextId;
+    for (let c = 0; c < g.cells; c++) {
+      if (!g.active[c]) continue;
+      const label = labels[c];
+      if (label < 0) throw new Error('Solved partition has an unassigned cell');
+      if (!regions.has(label)) regions.set(label, []);
+      regions.get(label)!.push(c);
+      const id = this.paint[c];
+      nextId = Math.max(nextId, id + 1);
+      if (!id) continue;
+      if (!counts.has(label)) counts.set(label, new Map());
+      const regionCounts = counts.get(label)!;
+      regionCounts.set(id, (regionCounts.get(id) ?? 0) + 1);
+    }
+
+    // Prefer the player's largest existing painted pieces. A paint ID must not
+    // be reused for two different solved regions, even with inconsistent marks.
+    const candidates = [...counts].flatMap(([label, ids]) =>
+      [...ids].map(([id, count]) => ({ label, id, count })));
+    candidates.sort((a, b) => b.count - a.count || a.label - b.label || a.id - b.id);
+    const regionIds = new Map<number, number>();
+    const usedIds = new Set<number>();
+    for (const { label, id } of candidates) {
+      if (regionIds.has(label) || usedIds.has(id)) continue;
+      regionIds.set(label, id);
+      usedIds.add(id);
+    }
+    for (const label of regions.keys()) {
+      if (!regionIds.has(label)) regionIds.set(label, nextId++);
+    }
+
+    const finishedPaint = new Int32Array(g.cells);
+    for (const [label, cells] of regions) {
+      const id = regionIds.get(label)!;
+      for (const c of cells) finishedPaint[c] = id;
+    }
+
+    // Colour neighbouring solved panes differently, retaining an existing hue
+    // wherever it doesn't conflict. Prefer different diagonal hues as well.
+    const finishedHue: number[] = [];
+    for (const [label, cells] of regions) {
+      const id = regionIds.get(label)!;
+      const used = new Set<number>();
+      const corner = new Set<number>();
+      for (const c of cells) {
+        for (const n of g.adj[c]) {
+          const other = finishedPaint[n];
+          if (other !== id && finishedHue[other] !== undefined) used.add(finishedHue[other]);
+        }
+        const x = c % g.w;
+        const y = Math.floor(c / g.w);
+        for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= g.w || ny >= g.h) continue;
+          const other = finishedPaint[ny * g.w + nx];
+          if (other && other !== id && finishedHue[other] !== undefined) corner.add(finishedHue[other]);
+        }
+      }
+      const preferred = this.hue[id];
+      finishedHue[id] = preferred !== undefined && HUES[preferred] !== undefined && !used.has(preferred)
+        ? preferred
+        : freeHue(used, corner) ?? 0;
+    }
+
+    let changed = false;
+    for (let c = 0; c < g.cells; c++) {
+      if (this.paint[c] !== finishedPaint[c]) {
+        this.setPaint(c, finishedPaint[c]);
+        changed = true;
+      }
+    }
+    for (const [label] of regions) {
+      const id = regionIds.get(label)!;
+      if (this.hue[id] !== finishedHue[id]) changed = true;
+    }
+    if (changed) this.hue = finishedHue;
+    this.nextId = nextId;
+
+    // The paint IDs now match the final partition, so setEdge cannot split a
+    // region while the missing walls are drawn. Fixed walls remain untouched.
+    for (let e = 0; e < g.edges; e++) {
+      if (this.fixed[e]) continue;
+      const needed = labels[g.edgeA[e]] !== labels[g.edgeB[e]] ? WALL : NONE;
+      if (this.edge[e] === needed) continue;
+      this.setEdge(e, needed);
+      changed = true;
+    }
+    return changed;
+  }
+
   // -- edges -----------------------------------------------------------------
 
   setEdge(e: number, v: EdgeMark): void {

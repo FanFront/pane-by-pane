@@ -808,6 +808,16 @@ function setStatus(text: string, cls = ''): void {
 function refreshStatus(): void {
   if (!current) return;
   const c = checkCompletion(current.engine, current.ps);
+  // Winning with either notation completes the other one too. Use the verified
+  // player's partition, not the stored solution, and never finalize a hypothesis
+  // or an explicit solution reveal.
+  if (c.done && !board.reveal && !hypothesis) {
+    const labels = c.by === 'borders' ? current.ps.labelsByWalls() : current.ps.labelsByPaint();
+    if (current.ps.finishSolvedPartition(labels)) {
+      saveMarks();
+      board.requestDraw();
+    }
+  }
   board.setComplete(c.done && !board.reveal && !hypothesis);
   const wasDone = !doneEl.hidden;
   const showDone = c.done && !hypothesis;
@@ -857,11 +867,12 @@ function onChange(): void {
   dismissCoach();
   if (board.reveal) hideSolution();
   resetHint();
+  refreshStatus();
+  // Inspect the completed marks, not the partial stroke before auto-fill.
   const v = errorMode.value === 'always' ? findViolations(current.puzzle, current.ps) : { cells: new Set<number>(), edges: new Set<number>() };
   board.errors = v.cells;
   board.errorEdges = v.edges;
   board.requestDraw();
-  refreshStatus();
   updateButtons();
   if (!hypothesis) saveMarks();
 }
