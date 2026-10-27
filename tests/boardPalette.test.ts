@@ -14,11 +14,12 @@ function contrast(a: string, b: string): number {
   return Math.max(x, y) / Math.min(x, y);
 }
 
-test('classic palette preserves the existing empty glass and border appearance', () => {
+test('classic workshop uses warm unpainted glass and lead while preserving hue indices', () => {
   const classic = boardPalette('classic');
-  assert.equal(classic.clearGlass, '#e4e9ef');
-  assert.equal(classic.lead, '#1d1c21');
-  assert.equal(classic.ink, '#17161a');
+  assert.equal(classic.clearGlass, '#e6dfd0');
+  assert.equal(classic.lead, '#30262a');
+  assert.equal(classic.ink, '#201b1a');
+  assert.equal(boardPalette('modern').clearGlass, '#dfe9f8');
   for (const hue of HUES) assert.equal(tintedPane(hue, classic), hue);
 });
 

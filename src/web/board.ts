@@ -13,6 +13,7 @@ import {
 import { HUES, NONE, PlayerState, WALL, huePool } from './model.ts';
 import { boardDevicePixelRatio, completionAnimationActive, COMPLETION_FRAME_MS } from './renderPerformance.ts';
 import { boardPalette, tintedPane } from './boardPalette.ts';
+import { GlassTextureCache } from './art/glassMaterials.ts';
 import { getTheme } from './theme.ts';
 
 /** Resolve once on startup / theme changes; never read styles in the render loop. */
@@ -95,7 +96,8 @@ export class Board {
   /** fixed walls the player painted across (drawn hatched) */
   errorEdges: Set<number> = new Set();
   private hatch: CanvasPattern | null = null;
-  private grain: CanvasPattern | null = null;
+  /** A single deterministic texture tile, replaced when theme/DPR/cell-scale changes. */
+  private readonly grainCache = new GlassTextureCache();
   /** the window is finished by the player (lights up) */
   private complete = false;
   /** 0 = puzzle in progress, 1 = finished window; animated between the two */
@@ -191,6 +193,7 @@ export class Board {
     this.lastBoardPos = null;
     this.strokeEdges.clear();
     this.haptics.end(false);
+    this.grainCache.invalidate();
     this.resetView();
     // A different puzzle must not inherit an in-flight victory animation.
     if (this.anim !== null) cancelAnimationFrame(this.anim);
@@ -688,7 +691,7 @@ export class Board {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     ctx.restore();
     if (!this.hatch) this.hatch = makeHatch(ctx);
-    if (!this.grain) this.grain = makeGrain(ctx);
+    const grain = this.grainCache.get(ctx, getTheme(), window.devicePixelRatio || 1, s);
     const cellX = (c: number) => pad + (c % g.w) * s;
     const cellY = (c: number) => pad + Math.floor(c / g.w) * s;
 
@@ -739,9 +742,9 @@ export class Board {
         ctx.fillStyle = grad;
         ctx.fillRect(pad + b.x0 * s, pad + b.y0 * s, (b.x1 - b.x0 + 1) * s, (b.y1 - b.y0 + 1) * s);
       }
-      if (this.grain) {
-        ctx.globalAlpha = painted ? 0.7 : 0.35;
-        ctx.fillStyle = this.grain;
+      if (grain) {
+        ctx.globalAlpha = painted ? 0.85 : 0.45;
+        ctx.fillStyle = grain;
         ctx.fillRect(pad + b.x0 * s, pad + b.y0 * s, (b.x1 - b.x0 + 1) * s, (b.y1 - b.y0 + 1) * s);
         ctx.globalAlpha = 1;
       }
@@ -1149,50 +1152,6 @@ function makeHatch(ctx: CanvasRenderingContext2D): CanvasPattern | null {
   };
   line(0, 'rgba(110,20,20,0.75)', 2.2);
   line(1.6, 'rgba(255,255,255,0.55)', 0.8);
-  const pat = ctx.createPattern(c, 'repeat');
-  if (pat && 'setTransform' in pat) pat.setTransform(new DOMMatrix().scale(1 / dpr));
-  return pat;
-}
-
-/** The grain of hand-rolled glass: faint diagonal streaks and a little mottling. */
-function makeGrain(ctx: CanvasRenderingContext2D): CanvasPattern | null {
-  const c = document.createElement('canvas');
-  const dpr = window.devicePixelRatio || 1;
-  const size = 160;
-  c.width = size * dpr;
-  c.height = size * dpr;
-  const p = c.getContext('2d')!;
-  p.scale(dpr, dpr);
-  let seed = 7;
-  const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
-  p.lineCap = 'round';
-  for (let i = 0; i < 22; i++) {
-    const x = rnd() * size * 2 - size;
-    const len = 40 + rnd() * 100;
-    const light = rnd() < 0.6;
-    p.strokeStyle = light ? `rgba(255,255,255,${0.03 + rnd() * 0.05})` : `rgba(0,0,30,${0.02 + rnd() * 0.03})`;
-    p.lineWidth = 3 + rnd() * 9;
-    p.beginPath();
-    // streaks are tiled: draw each one three times so the pattern wraps
-    for (const dx of [-size, 0, size]) {
-      p.moveTo(x + dx, size);
-      p.lineTo(x + dx + len, size - len);
-    }
-    p.stroke();
-  }
-  for (let i = 0; i < 90; i++) {
-    const light = rnd() < 0.65;
-    p.fillStyle = light ? `rgba(255,255,255,${0.02 + rnd() * 0.04})` : `rgba(0,0,30,${0.015 + rnd() * 0.025})`;
-    const x = rnd() * size;
-    const y = rnd() * size;
-    const rr = 6 + rnd() * 18;
-    // mottling is tiled too: draw near the edges again so the pattern wraps
-    for (const dx of [-size, 0, size]) for (const dy of [-size, 0, size]) {
-      p.beginPath();
-      p.arc(x + dx, y + dy, rr, 0, Math.PI * 2);
-      p.fill();
-    }
-  }
   const pat = ctx.createPattern(c, 'repeat');
   if (pat && 'setTransform' in pat) pat.setTransform(new DOMMatrix().scale(1 / dpr));
   return pat;
