@@ -3,7 +3,9 @@
 This fork is for **personal, noncommercial, offline Android play** of the
 existing pane-by-pane game. Preserve the upstream game logic and web UI.
 
-- Do not rewrite the puzzle engine, generator, solver, rules, board or hints.
+- Do not rewrite the puzzle engine, generator, solver, rules or hints. Gameplay logic, level progression, input geometry and save formats are protected.
+- Presentation-only changes to the web UI and Canvas board are explicitly permitted for the staged handcrafted-workshop overhaul (see `docs/HANDCRAFTED_WORKSHOP_OVERHAUL.md`).
+- Keep Classic/Modern/Dark preference keys, Android touch handling, haptics, and reduced-motion behavior compatible.
 - Keep `package.json` and `package-lock.json` compatible with upstream;
   Android build dependencies are installed temporarily by
   `scripts/build-android.sh`.
