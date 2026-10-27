@@ -1653,3 +1653,119 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
   :root:not([data-theme='modern']):not([data-theme='dark']) #stage,
   :root:not([data-theme='modern']):not([data-theme='dark']) #top { transition: none; }
 }
+
+
+/* Steam Workshop discovery: separate from installed/playable puzzle data. */
+#level-bundled-panel[hidden], #community-panel[hidden] { display: none !important; }
+.level-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 8px 0 14px;
+}
+.level-mode-switch button {
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px;
+  border-radius: 10px;
+  font-weight: 650;
+}
+.level-mode-switch button[aria-pressed='true'] {
+  color: var(--accent-text);
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.community-panel {
+  max-height: calc(88dvh - 155px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 3px;
+}
+.community-panel > p:first-child { margin: 0 0 12px; line-height: 1.5; }
+.community-search { gap: 6px; margin-bottom: 5px; }
+.community-search input[type='search'] {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+}
+#community-match-count { margin: 8px 0 12px; }
+.community-group + .community-group { margin-top: 18px; }
+.community-group h3 {
+  margin: 0 0 9px;
+  font: 650 16px var(--serif);
+  color: var(--fg);
+}
+.community-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+.community-card-details { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.community-card-details strong { font-size: 14px; overflow-wrap: anywhere; }
+.community-card-details p { margin: 0; line-height: 1.4; }
+.community-external-link {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--hover-border);
+  color: var(--accent-dark);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+:root[data-theme='dark'] .community-external-link { color: var(--accent); }
+.community-external-link:hover, .community-external-link:focus-visible {
+  border-color: var(--accent);
+  text-decoration: underline;
+}
+.community-import {
+  margin: 17px 0 4px;
+  padding: 14px;
+  border: 1px dashed var(--hover-border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.community-import-button {
+  position: relative;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px;
+  min-height: 42px;
+  border: 1px solid var(--accent);
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--accent-text);
+  cursor: pointer;
+  font-weight: 600;
+}
+.community-import-button input[type='file'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+.community-import p { margin: 10px 0 0; line-height: 1.5; }
+@media (max-width: 520px) {
+  .community-card { flex-direction: column; align-items: stretch; gap: 9px; }
+  .community-external-link { align-self: flex-start; }
+  .level-mode-switch button { font-size: 12px; }
+}
