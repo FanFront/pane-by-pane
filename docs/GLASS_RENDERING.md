@@ -15,3 +15,10 @@ invalidates it; theme changes and resolution changes naturally change its key.
 Inspect thick lead joints, dark-mode clue contrast, and thin rotated boards on
 real devices. Texture creation should be visible only on board load or theme/DPR
 bucket changes, never every move or every animation frame.
+
+### Validation notes
+
+Before merging, review screenshot baselines for Classic, Modern and Dark; capture
+an unpainted board, a mostly painted board and a completed board. Rendering
+performance must be measured on a real Android device with a large level,
+not inferred only from desktop test results.
