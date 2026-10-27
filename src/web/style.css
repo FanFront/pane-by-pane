@@ -1,21 +1,21 @@
 :root {
-  --fg: #2a2521;
-  --muted: #7d746a;
-  --line: #e2dacd;
-  --accent: #a4781f;
-  --accent-dark: #7f5c15;
+  --fg: #30251e;
+  --muted: #6c5b4b;
+  --line: #cbbd9f;
+  --accent: #95682f;
+  --accent-dark: #704919;
   --ok: #8a6a12;
-  --bg: #f7f2ea;
-  --paper: #fcfaf5;
-  --stage: #45444c;
-  --surface: #fff;
-  --surface-soft: #fffdf8;
-  --hover-bg: #efe8dc;
-  --pressed-bg: #e6dccb;
-  --hover-border: #c9bda8;
+  --bg: #e8dcc6;
+  --paper: #f5ebd9;
+  --stage: #3e3735;
+  --surface: #fff9eb;
+  --surface-soft: #f9eddb;
+  --hover-bg: #eee0c8;
+  --pressed-bg: #e0ceab;
+  --hover-border: #bda174;
   --top-highlight: #fff;
   --accent-text: #fff;
-  --selected-bg: #fff7e5;
+  --selected-bg: #f7e5c1;
   --zone-complete-bg: #fff0c9;
   --zone-complete-border: #d8aa4f;
   --chapter-complete-bg: linear-gradient(145deg, #fffcf2, #faeccc);
@@ -29,8 +29,8 @@
   --hypothesis-border: #e7c572;
   --hypothesis-fg: #332715;
   /* Canvas paint colours are in boardPalette.ts; these gradients style the surrounding room. */
-  --board-backdrop: radial-gradient(ellipse at 50% 40%, #55545d 0%, var(--stage) 45%, #33323a 100%);
-  --board-lit-backdrop: radial-gradient(ellipse at 50% 45%, #3a3540 0%, #221f27 50%, #131218 100%);
+  --board-backdrop: radial-gradient(ellipse at 52% 33%, #655548 0%, var(--stage) 49%, #282325 100%);
+  --board-lit-backdrop: radial-gradient(ellipse at 50% 45%, #63503f 0%, #29232a 56%, #141218 100%);
   --top: 56px;
   --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
@@ -1423,4 +1423,92 @@ a {
   .theme-options { gap: 5px; }
   .theme-option { min-height: 88px; padding: 6px 3px; }
   .theme-preview { height: 40px; }
+}
+
+/* -- workshop art direction (Classic only; Modern/Dark preserve their identities) --
+   Built from gradients, not image downloads. Avoid animated filters over the canvas. */
+:root {
+  --workshop-walnut: #382b28;
+  --workshop-parchment: #f0e3cb;
+  --workshop-brass: #ba8c46;
+  --workshop-sunlight: #ffdc9f;
+  --workshop-bevel: rgba(255, 249, 223, .67);
+  --workshop-shadow: rgba(51, 34, 23, .17);
+}
+:root[data-theme='modern'] {
+  --workshop-bevel: rgba(255, 255, 255, .9);
+  --workshop-shadow: rgba(30, 52, 96, .12);
+}
+:root[data-theme='dark'] {
+  --workshop-bevel: rgba(181, 207, 250, .12);
+  --workshop-shadow: rgba(0, 0, 0, .35);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) body {
+  background-image:
+    radial-gradient(ellipse at 50% -10%, rgba(255, 245, 210, .68), transparent 68%),
+    repeating-linear-gradient(97deg, transparent 0 46px, rgba(89, 59, 31, .018) 47px 48px);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #top {
+  background-image: linear-gradient(180deg, #fff6e5 0%, #ead9bd 100%);
+  border-bottom: 1px solid #b69d75;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.75), 0 2px 9px rgba(49,32,20,.12);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #top h1 {
+  color: #483224;
+  text-shadow: 0 1px 0 rgba(255,255,255,.72);
+  letter-spacing: .025em;
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #board-wrap {
+  background-image:
+    radial-gradient(ellipse at 48% 24%, rgba(255,207,130,.10), transparent 58%),
+    var(--board-backdrop);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) dialog {
+  background-image:
+    repeating-linear-gradient(95deg, rgba(114,80,41,.022) 0 1px, transparent 1px 18px),
+    linear-gradient(145deg, #fff7e8 0%, var(--paper) 100%);
+  border-color: #b89c71;
+  border-radius: 14px;
+  box-shadow: 0 15px 44px rgba(23, 16, 12, .38), inset 0 1px 0 #fffaf0;
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) .dialog-head,
+:root:not([data-theme='modern']):not([data-theme='dark']) .section-title {
+  color: #5e4025;
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) button:not(.icon),
+:root:not([data-theme='modern']):not([data-theme='dark']) .settings-actions button.icon {
+  border-radius: 9px;
+  box-shadow: inset 0 1px 0 var(--workshop-bevel), 0 2px 3px var(--workshop-shadow);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) button.primary,
+:root:not([data-theme='modern']):not([data-theme='dark']) .level-zones button[aria-pressed='true'] {
+  background-image: linear-gradient(180deg, #af8747, #80551f);
+  color: #fff8e5;
+  border-color: #79501b;
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #info .toolbar button,
+:root:not([data-theme='modern']):not([data-theme='dark']) .level-tile,
+:root:not([data-theme='modern']):not([data-theme='dark']) .level-chapter {
+  border-color: #bba481;
+  background-image: linear-gradient(160deg, rgba(255,255,255,.43), rgba(183,139,78,.09));
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) .theme-preview-classic {
+  background:
+    linear-gradient(90deg, transparent 47%, #392b26 47% 53%, transparent 53%),
+    linear-gradient(0deg, transparent 47%, #392b26 47% 53%, transparent 53%),
+    conic-gradient(from 90deg, #c9943e 0 25%, #5d8fe6 0 50%, #4fbf8c 0 75%, #e46060 0);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) button:active:not(:disabled) {
+  box-shadow: inset 0 2px 5px rgba(57,34,19,.22);
+}
+button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (max-width: 480px) {
+  #top #actions button.icon { min-width: 40px; min-height: 44px; }
+  #top #actions #levels-entry { min-width: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #board-wrap::before, canvas#board, button, dialog { transition-duration: 0.01ms !important; }
 }

@@ -18,6 +18,10 @@ A stained-glass region-partition puzzle in the spirit of *The Artisan of Glimmit
 - **It ticks.** Every pane painted or erased plays a haptic tick, on Android through the Vibration API and on iOS through the one thing that still works there: a real, invisible `<input type=checkbox switch>` under the finger, moved around during a stroke so that WebKit's own drag-tracking haptic fires once per pane (see `src/web/haptics.ts`).
 - **Playable anywhere.** Touch and mouse gestures, undo/redo, autosave, shareable links, Korean, English or Simplified Chinese chosen from the browser and switchable in the header. The choice is saved locally.
 
+## Handcrafted workshop art direction
+
+See [the visual and audio overhaul plan](docs/HANDCRAFTED_WORKSHOP_OVERHAUL.md) and [the original workshop material guidance](docs/WORKSHOP_ART_GUIDE.md). The makeover is intentionally presentation-only: puzzle data, progress and solving interactions remain unchanged.
+
 ## Appearance themes
 
 Open **Settings → Appearance** to switch between **Classic** (the original warm
