@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 104" role="img" aria-label="Stained-glass workshop crest">
+<defs><linearGradient id="b" x2="1" y2="1"><stop stop-color="#f7d58b"/><stop offset=".5" stop-color="#a16d2e"/><stop offset="1" stop-color="#482c20"/></linearGradient><linearGradient id="s" x2=".75" y2="1"><stop stop-color="#89c5f5"/><stop offset="1" stop-color="#19548f"/></linearGradient><linearGradient id="e" x2="1" y2="1"><stop stop-color="#86e4b1"/><stop offset="1" stop-color="#146747"/></linearGradient></defs>
+<path d="M14 95V45Q14 20 52 6q38 14 38 39v50Z" fill="#1f1620" stroke="url(#b)" stroke-width="5"/>
+<path d="M22 87V47Q22 27 52 15q30 12 30 32v40Z" fill="#c45c46" stroke="#d0aa68" stroke-width="1.6"/>
+<path d="M22 47Q25 28 52 15L52 48Z" fill="url(#s)"/><path d="M52 15q27 13 30 32L52 48Z" fill="#f8c35c"/>
+<path d="M22 47h30v40H22Z" fill="#6a4fa9"/><path d="M52 47h30v40H52Z" fill="url(#e)"/>
+<path d="M52 15V89M22 48h60M22 87h60M28 31l48 44M76 31 28 75" stroke="#382630" stroke-width="4" fill="none" stroke-linecap="round"/>
+<path d="M52 15V89M22 48h60" stroke="#e5c58c" stroke-opacity=".6" stroke-width="1" fill="none"/>
+<circle cx="52" cy="48" r="11.5" fill="#f0a942" stroke="#382630" stroke-width="4"/><circle cx="52" cy="48" r="5" fill="#fff1ad"/>
+<path d="M14 95H90" stroke="url(#b)" stroke-width="7" stroke-linecap="round"/>
+</svg>

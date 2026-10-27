@@ -1512,3 +1512,144 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
 @media (prefers-reduced-motion: reduce) {
   #board-wrap::before, canvas#board, button, dialog { transition-duration: 0.01ms !important; }
 }
+
+
+/* Illustrated Workshop — a visual environment, not a puzzle rule.
+   All art is original, self-hosted and intentionally static. */
+:root:not([data-theme='modern']):not([data-theme='dark']) #board-wrap {
+  background-color: #35272a;
+  background-image:
+    linear-gradient(90deg, rgba(16,12,16,.08) 0%, rgba(21,18,24,.20) 32%, rgba(21,18,24,.20) 68%, rgba(16,12,16,.08) 100%),
+    url('./assets/workshop-scene.svg');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 5px rgba(105,72,41,.78), inset 0 0 0 8px rgba(245,196,111,.21);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #board-wrap::before {
+  background: radial-gradient(ellipse at 50% 50%, rgba(41,29,35,.2) 0%, rgba(17,16,22,.88) 76%);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #top h1 > svg {
+  display: none;
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #top h1::before {
+  content: '';
+  flex: 0 0 34px;
+  width: 34px;
+  height: 38px;
+  background: url('./assets/workshop-crest.svg') center / contain no-repeat;
+  filter: drop-shadow(0 1px 2px rgba(39,24,19,.55));
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #top {
+  background: linear-gradient(180deg, #f5deae 0%, #d4ad72 7%, #745037 9%, #58382c 58%, #402b28 100%);
+  color: #f8e3ba;
+  border-bottom: 3px ridge #b98c52;
+  box-shadow: 0 4px 14px rgba(16,12,15,.45);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #top h1 {
+  color: #f4d7a2;
+  text-shadow: 1px 2px 2px rgba(0,0,0,.65);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #top #actions .icon {
+  color: #f4dfb7;
+  border: 1px solid rgba(242,194,111,.26);
+  border-radius: 9px;
+  background: linear-gradient(160deg, rgba(255,236,188,.15), rgba(30,17,21,.25));
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #top #actions .icon:disabled { opacity: .46; }
+:root:not([data-theme='modern']):not([data-theme='dark']) #top #actions .icon:focus-visible {
+  outline-color: #ffdc9f;
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #stage {
+  isolation: isolate;
+  border-radius: 4px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.65), 0 0 0 3px #5a3729, 0 0 0 7px #b58a52, 0 0 0 10px #382622;
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #stage::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  inset: -12px;
+  pointer-events: none;
+  border: 3px double rgba(251,211,137,.68);
+  border-radius: 7px;
+  box-shadow: inset 0 0 0 1px rgba(32,19,18,.8);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #info .toolbar {
+  border: 2px ridge #b38c53;
+  border-radius: 13px;
+  padding: 4px;
+  background: linear-gradient(0deg, #3f2925, #674431 50%, #44302d);
+  box-shadow: inset 0 2px 3px rgba(255,214,155,.16), 0 7px 13px rgba(0,0,0,.3);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #info .toolbar button {
+  color: #422e26;
+  background: linear-gradient(180deg, #fff1d1, #d9b783);
+  border: 1px solid #916a38;
+  box-shadow: inset 0 1px 0 #fff9e6, 0 3px 0 rgba(42,22,20,.38);
+  text-shadow: 0 1px 0 rgba(255,255,255,.35);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #info .toolbar button.active {
+  background: linear-gradient(180deg, #c79959, #846133);
+  color: #fff7da;
+  border-color: #e0b975;
+  text-shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #goal-bar .chip {
+  background: linear-gradient(180deg, #ffefd0, #dabb87);
+  color: #462d25;
+  border-color: #9a754c;
+  box-shadow: inset 0 1px 0 #fff9df, 0 2px 4px rgba(0,0,0,.21);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) dialog {
+  border: 6px ridge #b68b55;
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,.65), transparent 60%),
+    repeating-linear-gradient(94deg, rgba(129,84,46,.025) 0 1px, transparent 1px 18px),
+    linear-gradient(135deg, #fff4db 0%, #ddc69c 100%);
+  box-shadow: 0 0 0 3px #4b3027, 0 24px 55px rgba(0,0,0,.52);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) dialog .dialog-head {
+  border-bottom: 1px solid rgba(119,77,36,.36);
+  padding-bottom: 9px;
+  text-shadow: 0 1px rgba(255,255,255,.9);
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #settings-dialog .settings-head {
+  padding-top: 18px;
+  padding-bottom: 16px;
+  background-image:
+    linear-gradient(90deg, rgba(246,228,194,.96) 0%, rgba(246,228,194,.82) 54%, rgba(246,228,194,.09)),
+    url('./assets/workshop-scene.svg');
+  background-size: cover;
+  background-position: right 40%;
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) #levels-dialog .dialog-head {
+  min-height: 82px;
+  padding: 15px 12px;
+  border: 2px solid #b58d54;
+  border-radius: 10px;
+  background:
+    linear-gradient(90deg, rgba(252,240,215,.94), rgba(252,240,215,.60) 46%, transparent 80%),
+    url('./assets/workshop-chapter.svg') center / cover no-repeat;
+}
+:root:not([data-theme='modern']):not([data-theme='dark']) .level-tile.is-complete::before {
+  content: '✦';
+  color: #b28646;
+  font-size: 12px;
+  line-height: 1;
+  text-shadow: 0 1px #fff2cc;
+}
+@media (max-width: 480px) {
+  :root:not([data-theme='modern']):not([data-theme='dark']) #top h1::before {
+    width: 24px; height: 28px; flex-basis: 24px;
+  }
+  :root:not([data-theme='modern']):not([data-theme='dark']) #stage {
+    box-shadow: 0 9px 21px rgba(0,0,0,.55), 0 0 0 2px #5a3729, 0 0 0 4px #b58a52;
+  }
+  :root:not([data-theme='modern']):not([data-theme='dark']) #stage::after { inset: -6px; border-width: 1px; }
+  :root:not([data-theme='modern']):not([data-theme='dark']) #levels-dialog .dialog-head { min-height: 68px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-theme='modern']):not([data-theme='dark']) #stage,
+  :root:not([data-theme='modern']):not([data-theme='dark']) #top { transition: none; }
+}

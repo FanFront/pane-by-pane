@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice">
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#5b8da2"/><stop offset=".58" stop-color="#d8c49d"/><stop offset="1" stop-color="#f4dfb4"/></linearGradient><linearGradient id="gold" x2=".2" y2="1"><stop stop-color="#f4d697"/><stop offset="1" stop-color="#89633d"/></linearGradient><linearGradient id="veil" x2="1" y2="0"><stop stop-color="#f7ecda" stop-opacity=".99"/><stop offset=".55" stop-color="#f7ecda" stop-opacity=".93"/><stop offset="1" stop-color="#f7ecda" stop-opacity="0"/></linearGradient></defs>
+<rect width="1200" height="300" fill="url(#sky)"/><circle cx="980" cy="72" r="57" fill="#ffe1a1" opacity=".83"/>
+<path d="M-170 220L-35 25L100 220Z" fill="#a5a48b" opacity=".75"/><path d="M-24 220L111 45L246 220Z" fill="#8b977a" opacity=".75"/><path d="M122 220L257 65L392 220Z" fill="#a5a48b" opacity=".75"/><path d="M268 220L403 25L538 220Z" fill="#8b977a" opacity=".75"/><path d="M414 220L549 45L684 220Z" fill="#a5a48b" opacity=".75"/><path d="M560 220L695 65L830 220Z" fill="#8b977a" opacity=".75"/><path d="M706 220L841 25L976 220Z" fill="#a5a48b" opacity=".75"/><path d="M852 220L987 45L1122 220Z" fill="#8b977a" opacity=".75"/><path d="M998 220L1133 65L1268 220Z" fill="#a5a48b" opacity=".75"/>
+<path d="M0 235Q140 170 260 232T510 218T740 230T1050 200T1200 211V300H0Z" fill="#63765b"/>
+<path d="M0 255Q130 213 250 256T500 254T750 236T1070 240T1200 250V300H0Z" fill="#3d6557"/>
+<path d="M730 246L790 128L843 128L893 245Z" fill="#ae8d62" stroke="#5d473e" stroke-width="5"/>
+<path d="M793 130v-60l18-30 18 30v60" fill="#d1b088" stroke="#5d473e" stroke-width="6"/><path d="M802 78h16v25h-16Z" fill="#2f6779"/>
+<path d="M868 238v-65l25-40 25 40v65" fill="#b9a07a" stroke="#63483b" stroke-width="5"/>
+<path d="M750 177h96M760 204h97" stroke="#ecd5a6" stroke-opacity=".5" stroke-width="4"/>
+<path d="M785 248v-31q0-26 28-26q28 0 28 26v31" fill="#344b50" stroke="#c4a373" stroke-width="4"/>
+<path d="M0 0h1200v300H0Z" fill="url(#veil)"/>
+<rect x="4" y="4" width="1192" height="292" rx="15" fill="none" stroke="url(#gold)" stroke-width="8"/>
+<path d="M28 28h95m-95 0v63m1143-63h-95m95 0v63M28 272h95m-95 0v-64m1143 64h-95m95 0v-64" fill="none" stroke="#a7804b" stroke-width="4" stroke-linecap="round"/>
+</svg>
